@@ -1,0 +1,174 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+
+
+
+
+model User {
+  id          String   @id @default(uuid())
+  name        String   
+  email       String   @unique
+  password    String
+  kycVerified Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  kyc          KYC?
+  items        Item[] 
+  rentals      Rental[]
+  reviews      Review[]
+  transactions  Transaction[]
+  cart         Cart?
+}
+
+model KYC {
+  id                 String    @id @default(uuid())
+  user               User      @relation(fields: [userId], references: [id])
+  userId             String    @unique
+  documentType       String
+  documentNumber     String
+  documentImageUrl   String
+  selfieUrl          String
+  verificationStatus KYCStatus @default(PENDING)
+  verifiedAt         DateTime?
+  createdAt          DateTime  @default(now())
+}
+
+enum KYCStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model Item {
+  id              String   @id @default(uuid())
+  name            String
+  category        String
+  description     String?
+  availability    Boolean  @default(true)
+  pricePerDay     Float
+  owner           User     @relation(fields: [ownerId], references: [id])
+  ownerId         String   
+  images          String[]
+  attributes      Json?
+  createdAt       DateTime @default(now())
+
+  rentals         Rental[]
+  carts           Cart[]
+  reservations Reservation[]
+}
+
+model Cart {
+  id          String   @id @default(uuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String   @unique
+  totalAmount Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt  
+
+  items     Item[]
+  reservations Reservation[]
+}
+
+model Rental {
+  id            String       @id @default(uuid())
+  user          User         @relation(fields: [userId], references: [id])
+  userId        String
+  item          Item         @relation(fields: [itemId], references: [id])
+  itemId        String
+  startDate     DateTime
+  endDate       DateTime
+  rentalAmount  Float
+  depositAmount   Float         @default(0)
+  status        RentalStatus @default(PENDING)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  reservation   Reservation?
+  transaction   Transaction[]
+  review        Review?
+}
+
+enum RentalStatus {
+  PENDING
+  CONFIRMED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model Reservation {
+   id          String            @id @default(uuid())
+  cart        Cart              @relation(fields: [cartId], references: [id])
+  cartId      String
+  item        Item              @relation(fields: [itemId], references: [id])
+  itemId      String
+  rental      Rental?           @relation(fields: [rentalId], references: [id])
+  rentalId    String?           @unique
+  startDate   DateTime
+  endDate     DateTime
+  totalAmount Float
+  expiresAt   DateTime
+  status      ReservationStatus @default(PENDING)
+  createdAt   DateTime          @default(now())
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+model Transaction {
+  id            String            @id @default(uuid())
+  rental        Rental            @relation(fields: [rentalId], references: [id])
+  rentalId      String         
+  user          User         @relation(fields: [userId], references: [id])
+  userId        String            
+  rentalAmount   Float
+  depositAmount Float             @default(0)
+  totalAmount   Float
+  paymentMethod String
+  type          TransactionType
+  status        TransactionStatus @default(PENDING)
+  razorpayId    String?
+  refundedAt    DateTime?
+  createdAt     DateTime          @default(now())
+}
+
+enum TransactionType {
+  PAYMENT
+  DEPOSIT
+  REFUND
+  EXTENSION
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  rental    Rental   @relation(fields: [rentalId], references: [id])
+  rentalId  String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+}
