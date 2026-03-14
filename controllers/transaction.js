@@ -5,10 +5,15 @@ async function createInitialPayment(req,res){
         const {rentalId}= req.body;
         const rental= await prisma.rental.findUnique({
             where: { id: rentalId },
-            include: { item: true }
+            include: { item: true },
+             select: { upiId: true }
             });
 
-        
+         if (!user.upiId) {
+            return res.status(400).json({ 
+              message: "Pehle profile mein UPI ID save karo" 
+            });
+          }
         if(!rental){
             return res.status(404).json({message:"Rental not found"});
         }
@@ -38,6 +43,7 @@ async function createInitialPayment(req,res){
             data: {
             rentalId: rental.id,
             userId: req.user.id,
+            upiId: user.upiId,
             rentalAmount: rentalAmount,       
             depositAmount: depositAmount,
             platformFee:platformFee,

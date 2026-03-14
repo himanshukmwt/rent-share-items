@@ -29,6 +29,7 @@ app.use(express.urlencoded({extended :false}));
 app.use(helmet());
 app.use(cors({
   origin: "http://localhost:5173", // replace with frontend domain
+  // origin: "*",
   methods: ["GET","POST","PUT","DELETE","PATCH"],
   credentials: true
 }));

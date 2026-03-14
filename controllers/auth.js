@@ -81,7 +81,11 @@ async function loginUser(req, res) {
     //   { expiresIn: process.env.JWT_EXPIRES_IN }
     // );
      const token=setUser(user);
-     res.cookie("uid",token); // for the website
+     res.cookie("uid",token,{
+       httpOnly: true,
+       sameSite: "lax",
+       maxAge: 24 * 60 * 60 * 1000
+     }); // for the website
 
     // 5. Send response
     return res.status(200).json({
@@ -122,6 +126,21 @@ async function getProfile(req, res) {
   }
 };
 
+async function updateProfile(req, res){
+  try {
+    const { upiId } = req.body  // ✅ upiId le raha hai?
+
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { upiId }  // ✅ upiId save ho raha hai?
+    });
+
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+}
+
 async function updateLocation(req, res){
   try {
     const { city, area, latitude, longitude } = req.body;
@@ -143,5 +162,6 @@ module.exports = {
   registerUser,
   loginUser,
   getProfile,
+  updateProfile,
   updateLocation
 };

@@ -3,14 +3,14 @@ const router = express.Router();
 
 const { authMiddleware } = require("../middleware/auth");
 const validate = require("../middleware/validate");
-const  {createReviewSchema} = require("../validators/reviewValidator");
+const  {reviewSchema} = require("../validators/reviewValidator");
 const {
   createReview,
   getItemReviews,
   deleteReview
 } = require("../controllers/review");
 
-router.post("/", authMiddleware,validate(createReviewSchema), createReview);
+router.post("/", authMiddleware,validate(reviewSchema), createReview);
 
 router.get("/:itemId", getItemReviews);
 
