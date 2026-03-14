@@ -1,14 +1,50 @@
 const prisma = require("../config/prisma");
+const { cloudinary } = require('../config/cloudinary');
+const depositRules = require('../config/depositRules');
 
 // Create item
 async function createItem(req,res){
   try{
       const {name,category,description,pricePerDay}=req.body;
+      
+      //Duplicate check
+      const existingItem = await prisma.item.findFirst({
+        where: {
+          ownerId:  req.user.id,
+          name:     { equals: name, mode: "insensitive" },
+          category: { equals: category, mode: "insensitive" }
+        }
+      });
+
+      if (existingItem) {
+        return res.status(400).json({ 
+          message: "This item is already listed" 
+        });
+      }
+  
+      const multiplier    = depositRules[category?.toLowerCase()] ||depositRules.default;
+      const depositAmount = Number(pricePerDay) * multiplier;
+
+      // Deposit 20000 se zyada nahi honi chahiye
+      if (depositAmount > 20000) {
+        return res.status(400).json({ 
+          message: `Deposit amount ${depositAmount} hai jo 20,000 se zyada hai. Price kam karo.` 
+        });
+      }
 
       if (!pricePerDay || pricePerDay <= 0) {
             return res.status(400).json({
           message: "Valid pricePerDay required"
         });
+      }
+      const images = req.files?.map(file => file.path) || []
+
+      // if (images.length === 0) {
+      //   return res.status(400).json({ message: "Kam se kam 1 image required hai" });
+      // }
+
+      if (images.length > 4) {
+        return res.status(400).json({ message: "Maximum 4 images allowed hain" });
       }
       const item= await prisma.item.create({
         data:{
@@ -16,6 +52,7 @@ async function createItem(req,res){
           category,
           description,
           pricePerDay:Number(pricePerDay),
+          images,
           owner: {
             connect: { id: req.user.id }
           }
@@ -49,9 +86,21 @@ async function  getItemById(req,res){
     const item = await prisma.item.findUnique({
       where: { id: req.params.id },
       include: {
-        owner: true,
-        // reviews: true
-      }
+        owner: {
+         select: {
+            name: true,
+            city: true,   
+            area: true,   
+          } 
+        }, 
+    //     reviews: {
+    //       include: {
+    //         user: {
+    //           select: { name: true }
+    //         }
+    //   }
+    // }
+  }
     });
 
     if (!item) {
@@ -107,6 +156,12 @@ async function deleteItem(req,res){
      //if it is related to the owner or not
     if(item.ownerId!==req.user.id){
       return res.status(403).json({message:"Unauthorized access"});
+    }
+
+    //Cloudinary se images delete 
+    for (const imageUrl of item.images) {
+      const publicId = imageUrl.split('/').pop().split('.')[0]
+      await cloudinary.uploader.destroy(`rentshare/items/${publicId}`)
     }
     
     await prisma.item.delete({

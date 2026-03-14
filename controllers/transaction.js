@@ -28,7 +28,8 @@ async function createInitialPayment(req,res){
 
         const rentalAmount = days * rental.item.pricePerDay;
         const depositAmount = rental.depositAmount;
-        const totalAmount = rentalAmount + depositAmount;
+        const platformFee   = Math.round(rentalAmount * 0.05);
+        const totalAmount = rentalAmount + depositAmount+platformFee;
 
        
         const result = await prisma.$transaction(async (tx) => {
@@ -39,6 +40,7 @@ async function createInitialPayment(req,res){
             userId: req.user.id,
             rentalAmount: rentalAmount,       
             depositAmount: depositAmount,
+            platformFee:platformFee,
             totalAmount:totalAmount,
             paymentMethod: "online",
             type: "PAYMENT",           
@@ -70,7 +72,7 @@ async function extendRentalPayment(req,res){
     try {
         const { rentalId, newEndDate } = req.body;
 
-        // Step 1: Rental dhundo
+        // Rental dhundo
         const rental = await prisma.rental.findUnique({
         where: { id: rentalId },
         include: { item: true }
@@ -80,19 +82,19 @@ async function extendRentalPayment(req,res){
         return res.status(404).json({ message: "Rental not found" });
         }
 
-        // Step 2: Sirf apna rental extend kar sake
+        // Sirf apna rental extend kar sake
         if (rental.userId !== req.user.id) {
         return res.status(403).json({ message: "Unauthorized" });
         }
 
-        // Step 3: Rental active hai check karo
+        //  Rental active check 
         if (rental.status !== "ACTIVE") {
         return res.status(400).json({ 
             message: "Sirf active rental extend ho sakta hai" 
         });
         }
 
-        // Step 4: Date valid hai check karo
+        // S Date valid hai check 
         const oldEnd = new Date(rental.endDate);
         const newEnd = new Date(newEndDate);
 
@@ -100,11 +102,11 @@ async function extendRentalPayment(req,res){
         return res.status(400).json({ message: "Invalid new date" });
         }
 
-        // Step 5: Conflict check karo new dates ke liye
+        // Conflict check karo new dates ke liye
         const conflict = await prisma.rental.findFirst({
         where: {
             itemId: rental.itemId,
-            id: { not: rentalId },        // apna rental exclude karo
+            id: { not: rentalId },        
             status: { in: ["PENDING", "ACTIVE"] },
             startDate: { lt: newEnd },
             endDate: { gt: oldEnd }
@@ -117,16 +119,16 @@ async function extendRentalPayment(req,res){
         });
         }
 
-        // Step 6: Extra amount calculate karo
+        //  Extra amount calculate 
         const extraDays = Math.ceil(
         (newEnd - oldEnd) / (1000 * 60 * 60 * 24)
         );
         const rentAmount = extraDays * rental.item.pricePerDay;
 
-        // Step 7: Transaction + Rental update ek saath
+        //  Transaction + Rental update ek saath
         const result = await prisma.$transaction(async (tx) => {
 
-        // Extension transaction banao
+        // Extension transaction 
         const transaction = await tx.transaction.create({
             data: {
             rentalId: rental.id,
@@ -140,7 +142,7 @@ async function extendRentalPayment(req,res){
             }
         });
 
-        // Rental endDate update karo
+        // Rental endDate update 
         await tx.rental.update({
             where: { id: rentalId },
             data: { endDate: newEnd }
@@ -160,7 +162,7 @@ async function refundDeposit(req, res){
  try {
     const { rentalId } = req.body;
 
-    // Step 1: Rental dhundo
+    // Rental dhundo
     const rental = await prisma.rental.findUnique({
       where: { id: rentalId },
       include: { 
@@ -173,7 +175,7 @@ async function refundDeposit(req, res){
       return res.status(404).json({ message: "Rental not found" });
     }
 
-    // Step 2: Check karo
+    //  Check 
     if (rental.userId !== req.user.id) {
       return res.status(403).json({ message: "Unauthorized" });
     }
@@ -182,14 +184,14 @@ async function refundDeposit(req, res){
       return res.status(400).json({ message: "Item return karo pehle" });
     }
 
-    // Step 3: depositAmount check karo
+    // depositAmount check 
     const depositAmount = rental.depositAmount;
 
     if (!depositAmount || depositAmount === 0) {
       return res.status(400).json({ message: "No deposit to refund" });
     }
 
-    // Step 4: Already refunded check
+    // Already refunded check
     const alreadyRefunded = await prisma.transaction.findFirst({
       where: {
         rentalId: rental.id,
@@ -201,7 +203,7 @@ async function refundDeposit(req, res){
       return res.status(400).json({ message: "Deposit already refunded" });
     }
 
-    // Step 5: Refund transaction
+    // Refund transaction
     const result = await prisma.$transaction(async (tx) => {
 
       const refund = await tx.transaction.create({
@@ -320,7 +322,7 @@ async function getTransactionById(req, res){
       return res.status(404).json({ message: "Transaction not found" });
     }
 
-    // Sirf apni transaction dekh sake
+    // Sirf apni transaction dekh sakte hai
     if (transaction.userId !== req.user.id) {
       return res.status(403).json({ message: "Unauthorized" });
     }

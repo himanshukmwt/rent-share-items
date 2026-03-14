@@ -1,10 +1,10 @@
 const prisma=require("../config/prisma");
-
+const depositRules=require("../config/depositRules");
 const checkout = async (req, res) => {
   try {
     const { itemId, startDate, endDate } = req.body;
 
-    // Step 1: Dates valid check
+    // Dates valid check
     if (!startDate || !endDate) {
       return res.status(400).json({ message: "Dates required" });
     }
@@ -13,7 +13,7 @@ const checkout = async (req, res) => {
       return res.status(400).json({ message: "Invalid date range" });
     }
 
-    // Step 2: Item check
+    // Item check
     const item = await prisma.item.findUnique({
       where: { id: itemId }
     });
@@ -22,12 +22,18 @@ const checkout = async (req, res) => {
       return res.status(404).json({ message: "Item not found" });
     }
 
-    // Step 3: Availability check
+    // Availability check
     if (!item.availability) {
       return res.status(400).json({ message: "Item not available" });
     }
 
-    // Step 4: Cart check
+    if (item.ownerId === req.user.id) {
+      return res.status(400).json({ 
+        message: "Aap apna khud ka item rent nahi kar sakte" 
+      });
+    }
+
+    // Cart check
     const cart = await prisma.cart.findUnique({
       where: { userId: req.user.id },
       include: { items: true }
@@ -37,7 +43,7 @@ const checkout = async (req, res) => {
       return res.status(404).json({ message: "Cart not found" });
     }
 
-    // Step 5: Item cart mein hai check
+    // Item cart mein hai check
     const itemInCart = cart.items.some((i) => i.id === itemId);
     if (!itemInCart) {
       return res.status(400).json({ 
@@ -45,7 +51,7 @@ const checkout = async (req, res) => {
       });
     }
 
-    // Step 6: Conflict check - Rental table se ✅
+    //Conflict check - Rental table se 
     const start = new Date(startDate);
     start.setHours(0, 0, 0, 0);
     const end = new Date(endDate);
@@ -56,7 +62,10 @@ const checkout = async (req, res) => {
         itemId,
         status: { in: ["PENDING", "ACTIVE"] },
         startDate: { lt: end },
-        endDate: { gt: start }
+        endDate: { gt: start },
+        OR: [
+          { status: "ACTIVE" },
+          { status: "PENDING", expiresAt: { gt: new Date() } } ]
       }
     });
 
@@ -66,31 +75,21 @@ const checkout = async (req, res) => {
       });
     }
 
-    // Step 7: Amount calculate
+    // Amount calculate
     const days = Math.ceil(
       (new Date(endDate) - new Date(startDate)) /
       (1000 * 60 * 60 * 24)
     );
     const rentalAmount = days * item.pricePerDay;
 
-    // Step 8: Deposit calculate
-    const depositRules = {
-      electronics: 3,
-      camera: 3,
-      tools: 2,
-      clothes: 1,
-      gaming: 2,
-      music: 2,
-      camping: 2
-    };
-    const multiplier = depositRules[item.category.toLowerCase()] || 2;
+    const multiplier = depositRules[item.category.toLowerCase()] || depositRules.default;
     const depositAmount = item.pricePerDay * multiplier;
     const totalAmount = rentalAmount + depositAmount;
 
-    // Step 9: Sab ek transaction mein
+    // Sab ek transaction mein
     const result = await prisma.$transaction(async (tx) => {
 
-      // Rental banao ✅ (Reservation nahi)
+      // Rental banao 
       const rental = await tx.rental.create({
         data: {
           userId: req.user.id,
@@ -99,7 +98,8 @@ const checkout = async (req, res) => {
           endDate: new Date(endDate),
           rentalAmount,
           depositAmount,
-          status: "ACTIVE"
+          status: "ACTIVE",
+          expiresAt: new Date(Date.now() + 15 * 60 * 1000) // 15 min
         }
       });
 

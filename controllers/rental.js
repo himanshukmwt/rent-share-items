@@ -1,11 +1,10 @@
 const prisma = require('../config/prisma')
-
+const depositRules = require('../config/depositRules')
 
 async function createRental(req,res){
   try {
     const { itemId, startDate, endDate } = req.body;
 
-    // Step 1: Valid dates check
     if (!startDate || !endDate) {
       return res.status(400).json({ message: "Dates required" });
     }
@@ -14,7 +13,7 @@ async function createRental(req,res){
       return res.status(400).json({ message: "Invalid date range" });
     }
 
-    // Step 2: Item exist check
+    // Item exist check
     const item = await prisma.item.findUnique({
       where: { id: itemId }
     });
@@ -23,9 +22,15 @@ async function createRental(req,res){
       return res.status(404).json({ message: "Item not found" });
     }
 
-    // Step 3: Availability check
+    // Availability check
     if (!item.availability) {
       return res.status(400).json({ message: "Item not available" });
+    }
+    //Owner apna item rent nahi kar sakta
+    if (item.ownerId === req.user.id) {
+      return res.status(400).json({ 
+        message: "Aap apna khud ka item rent nahi kar sakte" 
+      });
     }
 
     // Step 4: KYC check
@@ -36,18 +41,21 @@ async function createRental(req,res){
     //   return res.status(403).json({ message: "Complete KYC first" });
     // }
 
-    // Step 5: Conflict check (dates sahi hain ab)
-    const start = new Date(startDate);  // ✅ Fix
+    // Conflict check (dates sahi hain ab)
+    const start = new Date(startDate);  
     start.setHours(0, 0, 0, 0);
-    const end = new Date(endDate);      // ✅ Fix
+    const end = new Date(endDate);      
     end.setHours(23, 59, 59, 999);
 
     const conflict = await prisma.rental.findFirst({
       where: {
         itemId: itemId,
         status: { in: ["PENDING", "ACTIVE"] },
-        startDate: { lt: end },    // ✅ Sahi logic
-        endDate: { gt: start }     // ✅ Sahi logic
+        startDate: { lt: end },    
+        endDate: { gt: start },
+        OR: [
+        { status: "ACTIVE" },
+        { status: "PENDING", expiresAt: { gt: new Date() } }    ] 
       }
     });
 
@@ -57,30 +65,23 @@ async function createRental(req,res){
       });
     }
 
-    // Step 6: Amount calculate karo
+
     const days = Math.ceil(
       (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)
     );
-    const rentalAmount = days * item.pricePerDay;  // ✅ Add kiya
+    const rentalAmount = days * item.pricePerDay;  
 
-    // Step 7: Deposit calculate karo
-    const depositRules = {
-      electronics: 3,
-      camera: 3,       // ✅ Tumhare categories
-      tools: 2,
-      clothes: 1,
-      gaming: 2,
-      music: 2,
-      camping: 2
-    };
 
-    const multiplier = depositRules[item.category.toLowerCase()] || 2;
+    const multiplier = depositRules[item.category.toLowerCase()] || depositRules.default;
     const depositAmount = item.pricePerDay * multiplier;
 
-    // Step 8: Rental + Item update transaction mein
+    // Platform fee - 5% of rental amount
+    const platformFee   = Math.round(rentalAmount * 0.05);
+
+   
     const result = await prisma.$transaction(async (tx) => {
 
-      // Rental banao
+    
       const rental = await tx.rental.create({
         data: {
           userId: req.user.id,   
@@ -89,15 +90,11 @@ async function createRental(req,res){
           endDate: new Date(endDate),
           rentalAmount,          
           depositAmount,
-          status: "PENDING"
+          platformFee,
+          status: "PENDING",
+          expiresAt: new Date(Date.now() + 15 * 60 * 1000) // 15 min 
         }
       });
-
-      // Item unavailable karo
-      // await tx.item.update({
-      //   where: { id: itemId },
-      //   data: { availability: false }
-      // });
 
       return rental;
     });
@@ -105,7 +102,7 @@ async function createRental(req,res){
     res.status(201).json({
       message: "Rental created - Complete payment",
       result,
-      totalAmount: rentalAmount + depositAmount
+      totalAmount: rentalAmount + depositAmount + platformFee
     });
 
   } catch (error) {
@@ -127,6 +124,56 @@ async function getMyRentals(req,res){
 
         res.json(rentals);
     }catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Get Single Rental
+async function getRentalById(req, res) {
+  try {
+    const rental = await prisma.rental.findUnique({
+      where: { id: req.params.id },
+      include: {
+        item: {
+          include: {
+            owner: {
+              select: {
+                name:      true,
+                city:      true,
+                area:      true,
+                latitude:  true,
+                longitude: true,
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!rental) {
+      return res.status(404).json({ message: "Rental not found" });
+    }
+
+    // Sirf apna rental dekh sakte hai
+    if (rental.userId !== req.user.id) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    // ACTIVE nahi hai toh GPS hide 
+    if (rental.status !== "ACTIVE") {
+      rental.item.owner.latitude  = null;
+      rental.item.owner.longitude = null;
+    }
+
+    // Google Maps link
+    let locationLink = null;
+    if (rental.status === "PENDING" &&  rental.item.owner.latitude ) {
+      locationLink = `https://www.google.com/maps?q=${rental.item.owner.latitude},${rental.item.owner.longitude}`
+    }
+     
+    res.json({ ...rental, locationLink });
+
+  } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
@@ -158,5 +205,6 @@ module.exports={
     createRental,
     getMyRentals,
     getAllRentals,
+    getRentalById
 }
 

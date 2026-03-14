@@ -2,7 +2,6 @@ const prisma = require("../config/prisma");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const {setUser}=require("../service/auth");
-const {}=require("../middleware/auth");
 
 async function registerUser(req, res) {
   try {
@@ -35,7 +34,7 @@ async function registerUser(req, res) {
 
     res.status(201).json({
       message: "User registered successfully",
-      userId: user._id,
+      userId: user.id,
     });
   } catch (error) {
     res.status(500).json({ message: "error occurred" });
@@ -82,7 +81,7 @@ async function loginUser(req, res) {
     //   { expiresIn: process.env.JWT_EXPIRES_IN }
     // );
      const token=setUser(user);
-    //  res.cookie("uid",token); // for the website
+     res.cookie("uid",token); // for the website
 
     // 5. Send response
     return res.status(200).json({
@@ -99,7 +98,12 @@ async function loginUser(req, res) {
 
 async function getProfile(req, res) {
   try {
-    const userId = req.user._id; 
+
+    const token = req.cookies.uid;
+
+    if (!token) {
+        return res.status(401).json({ message: "Unauthorized" });
+    }
 
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
@@ -116,11 +120,28 @@ async function getProfile(req, res) {
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
-}
+};
+
+async function updateLocation(req, res){
+  try {
+    const { city, area, latitude, longitude } = req.body;
+
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { city, area, latitude, longitude }
+    });
+
+    res.json({ message: "Location updated " });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
 
 
 module.exports = {
   registerUser,
   loginUser,
   getProfile,
+  updateLocation
 };

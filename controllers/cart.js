@@ -14,13 +14,19 @@ const addToCart = async (req, res) => {
         data: { userId: req.user.id }
       });
     }
+    //  Owner apna item rent nahi kar sakta
+    if (item.ownerId === req.user.id) {
+      return res.status(400).json({ 
+        message: "Aap apna khud ka item cat nahi kar sakte" 
+      });
+    }
 
-    // Item add karo
+    // Item add karna
     await prisma.cart.update({
       where: { id: cart.id },
       data: {
         items: {
-          connect: { id: itemId }  // ✅ Simple connect
+          connect: { id: itemId }  
         }
       }
     });
@@ -49,7 +55,7 @@ const removeFromCart = async (req, res) => {
       where: { id: cart.id },
       data: {
         items: {
-          disconnect: { id: itemId }  // ✅ Simple disconnect
+          disconnect: { id: itemId }  
         }
       }
     });
@@ -107,7 +113,7 @@ const clearCart = async (req, res) => {
       where: { id: cart.id },
       data: {
         items: {
-          set: []  // ✅ Sab disconnect
+          set: []  
         }
       }
     });

@@ -2,8 +2,16 @@ const prisma = require('../config/prisma')
 
 const submitKYC = async (req, res) => {
   try {
-    const { documentType, documentNumber, documentImageUrl, selfieUrl } = req.body;
+    const { documentType, documentNumber } = req.body;
 
+    // Cloudinary se URLs 
+    const documentImageUrl = req.files?.document?.[0]?.path
+    const selfieUrl        = req.files?.selfie?.[0]?.path
+
+    if (!documentImageUrl) {
+      return res.status(400).json({ message: "Document image required" })
+    };
+    
     const existing = await prisma.kYC.findUnique({
       where: { userId: req.user.id }
     });

@@ -19,9 +19,9 @@ async function createReview(req,res){
       return res.status(403).json({ message: "Not allowed" });
     }
 
-    // if (rental.status !== "COMPLETED") {
-    //   return res.status(400).json({ message: "Complete rental first" });
-    // }
+    if (rental.status !== "COMPLETED") {
+      return res.status(400).json({ message: "Complete rental first" });
+    }
 
     const alreadyReviewed = await prisma.review.findUnique({
       where: { rentalId: rentalId }

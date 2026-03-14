@@ -22,8 +22,15 @@ model User {
   name        String   
   email       String   @unique
   password    String
+  role        Role     @default(USER) 
   kycVerified Boolean  @default(false)
+  city      String?  
+  area      String? 
+  latitude  Float?   
+  longitude Float?  
   createdAt   DateTime @default(now())
+  upiId       String? 
+  
 
   kyc          KYC?
   items        Item[] 
@@ -31,6 +38,11 @@ model User {
   reviews      Review[]
   transactions  Transaction[]
   cart         Cart?
+}
+
+enum Role {
+  USER   //  Normal user
+  ADMIN  //  Admin
 }
 
 model KYC {
@@ -67,7 +79,6 @@ model Item {
 
   rentals         Rental[]
   carts           Cart[]
-  reservations Reservation[]
 }
 
 model Cart {
@@ -79,7 +90,6 @@ model Cart {
   updatedAt   DateTime @updatedAt  
 
   items     Item[]
-  reservations Reservation[]
 }
 
 model Rental {
@@ -92,11 +102,12 @@ model Rental {
   endDate       DateTime
   rentalAmount  Float
   depositAmount   Float         @default(0)
+   platformFee   Float          @default(0)
   status        RentalStatus @default(PENDING)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+  expiresAt   DateTime?
 
-  reservation   Reservation?
   transaction   Transaction[]
   review        Review?
 }
@@ -107,29 +118,9 @@ enum RentalStatus {
   ACTIVE
   COMPLETED
   CANCELLED
+  EXPIRED 
 }
 
-model Reservation {
-   id          String            @id @default(uuid())
-  cart        Cart              @relation(fields: [cartId], references: [id])
-  cartId      String
-  item        Item              @relation(fields: [itemId], references: [id])
-  itemId      String
-  rental      Rental?           @relation(fields: [rentalId], references: [id])
-  rentalId    String?           @unique
-  startDate   DateTime
-  endDate     DateTime
-  totalAmount Float
-  expiresAt   DateTime
-  status      ReservationStatus @default(PENDING)
-  createdAt   DateTime          @default(now())
-}
-
-enum ReservationStatus {
-  PENDING
-  CONFIRMED
-  CANCELLED
-}
 
 model Transaction {
   id            String            @id @default(uuid())
@@ -139,6 +130,7 @@ model Transaction {
   userId        String            
   rentalAmount   Float
   depositAmount Float             @default(0)
+  platformFee   Float             @default(0)
   totalAmount   Float
   paymentMethod String
   type          TransactionType
