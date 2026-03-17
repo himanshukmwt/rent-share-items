@@ -19,6 +19,8 @@ const kycRoutes=require("./routes/kycRoutes");
 
 const cartRoutes = require("./routes/cartRoutes");
 const checkoutRoutes = require("./routes/checkoutRoutes");
+const adminRoutes = require('./routes/adminRoutes');
+
 
 const app = express();
 const PORT = Number(process.env.PORT) || 8007 ;
@@ -50,11 +52,19 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/cart",cartRoutes);
 app.use("/api/checkout",checkoutRoutes);
 app.use("/api/kyc",kycRoutes);
-
+app.use('/api/admin', adminRoutes);
 
 // Har 5 min mein expired rentals clean 
 cron.schedule('*/5 * * * *', async () => {
   try {
+        await prisma.rental.updateMany({
+      where: { 
+        status: "ACTIVE", 
+        endDate: { lt: new Date() }
+      },
+      data: { status: "RETURNING" }
+    });
+
     const expired = await prisma.rental.updateMany({
       where: {
         status: "PENDING",
@@ -62,9 +72,10 @@ cron.schedule('*/5 * * * *', async () => {
       },
       data: { status: "EXPIRED" }
     });
+
     
     if (expired.count > 0) {
-      console.log(`${expired.count} rentals expired `);
+      // console.log(`${expired.count} rentals expired `);
     }
     
   } catch (error) {

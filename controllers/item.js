@@ -93,13 +93,13 @@ async function  getItemById(req,res){
             area: true,   
           } 
         }, 
-    //     reviews: {
-    //       include: {
-    //         user: {
-    //           select: { name: true }
-    //         }
-    //   }
-    // }
+        reviews: {
+          include: {
+            user: {
+              select: { name: true }
+            }
+      }
+    }
   }
     });
 
@@ -109,39 +109,27 @@ async function  getItemById(req,res){
 
     res.status(200).json(item);
   } catch (error) {
+    console.log("Error:", error.message)
     res.status(500).json({ message: error.message });
   }
 };
 
-// Update an item
-async function updateItem(req,res){
-  try{
-     const existingItem = await prisma.item.findUnique({
-      where: { id: req.params.id }
-    });
-
-    if(!existingItem){
-      return res.status(404).json({message:"Item not found"});
-    }
-
-    //if it is related to the owner or not
-    if(existingItem.ownerId!==req.user.id){
-      return res.status(403).json({message:"Unauthorized access"});
-    }
-    const item = await prisma.item.update({
-      where: { id: req.params.id },
-      data: {
-        ...req.body,
-        pricePerDay: req.body.pricePerDay
-          ? Number(req.body.pricePerDay)
-          : existingItem.pricePerDay
+async function getMyItems(req, res) {
+  try {
+    const items = await prisma.item.findMany({
+      where: { ownerId: req.user.id },
+      include: {
+        owner: {
+          select: { name: true, city: true, area: true }
+        }
       }
     });
-     res.status(200).json(item);
-  }catch (error) {
+
+    res.json(items);
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
-};
+}
 
 // Delete an item
 async function deleteItem(req,res){
@@ -149,7 +137,6 @@ async function deleteItem(req,res){
     const item = await prisma.item.findUnique({
       where: { id: req.params.id }
     });
-
     if(!item){
       return res.status(404).json({message:"Item not found"});
     }
@@ -158,11 +145,64 @@ async function deleteItem(req,res){
       return res.status(403).json({message:"Unauthorized access"});
     }
 
+     //Active rental check
+    const activeRental = await prisma.rental.findFirst({
+      where: {
+        itemId: req.params.id,
+        status: { in: ["PENDING", "ACTIVE"] }
+      }
+    });
+
+    if (activeRental) {
+      return res.status(400).json({ 
+        message: "Item delete nahi ho sakta — active rental hai" 
+      });
+    }
+
+    const carts = await prisma.cart.findMany({
+  where: {
+    items: { some: { id: req.params.id } }
+  }
+});
+
+for (const cart of carts) {
+  await prisma.cart.update({
+    where: { id: cart.id },
+    data: {
+      items: {
+        disconnect: { id: req.params.id }
+      }
+    }
+  });
+}
+
+     // reviews delete 
+    await prisma.review.deleteMany({
+      where: { itemId: req.params.id }
+    });
+
+    // transactions delete 
+    await prisma.transaction.deleteMany({
+      where: { rental: { itemId: req.params.id } }
+    });
+
+    // rentals delete 
+    await prisma.rental.deleteMany({
+      where: { itemId: req.params.id }
+    });
+
+    
+
     //Cloudinary se images delete 
     for (const imageUrl of item.images) {
       const publicId = imageUrl.split('/').pop().split('.')[0]
       await cloudinary.uploader.destroy(`rentshare/items/${publicId}`)
     }
+
+    // item delete 
+    await prisma.item.delete({
+      where: { id: req.params.id }
+    });
     
     await prisma.item.delete({
       where: { id: req.params.id }
@@ -256,45 +296,14 @@ const searchItems = async (req, res) => {
   }
 };
 
-const getPaginatedItems = async (req, res) => {
-  try {
-    let { page = 1, limit = 10 } = req.query;
 
-    page  = Number(page);
-    limit = Number(limit);
-    const skip = (page - 1) * limit;
-
-    const total = await prisma.item.count(); 
-
-    const items = await prisma.item.findMany({
-      skip,                             
-      take: limit,                     
-      include: {
-        owner: {
-          select: { name: true }
-        }
-      }
-    });
-
-    res.json({
-      totalItems:  total,
-      currentPage: page,
-      totalPages:  Math.ceil(total / limit),
-      items
-    });
-
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
 
 module.exports={
   createItem,
   getAllItems,
   getItemById,
-  updateItem,
+  getMyItems,
   deleteItem,
   getFilteredItems,
   searchItems,
-  getPaginatedItems
 }

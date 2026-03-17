@@ -6,8 +6,13 @@ async function createInitialPayment(req,res){
         const rental= await prisma.rental.findUnique({
             where: { id: rentalId },
             include: { item: true },
-             select: { upiId: true }
+            //  select: { upiId: true }
             });
+
+         const user = await prisma.user.findUnique({
+            where: { id: req.user.id },
+            select: { upiId: true }
+          });
 
          if (!user.upiId) {
             return res.status(400).json({ 
@@ -43,12 +48,11 @@ async function createInitialPayment(req,res){
             data: {
             rentalId: rental.id,
             userId: req.user.id,
-            upiId: user.upiId,
             rentalAmount: rentalAmount,       
             depositAmount: depositAmount,
             platformFee:platformFee,
             totalAmount:totalAmount,
-            paymentMethod: "online",
+            paymentMethod: "upi",
             type: "PAYMENT",           
             status: "SUCCESS"
             }
@@ -142,7 +146,7 @@ async function extendRentalPayment(req,res){
             rentalAmount: rentAmount,
             depositAmount: 0,           
             totalAmount: rentAmount,
-            paymentMethod: "online",
+            paymentMethod: "upi",
             type: "EXTENSION",          
             status: "SUCCESS"
             }
@@ -168,7 +172,6 @@ async function refundDeposit(req, res){
  try {
     const { rentalId } = req.body;
 
-    // Rental dhundo
     const rental = await prisma.rental.findUnique({
       where: { id: rentalId },
       include: { 
@@ -181,7 +184,7 @@ async function refundDeposit(req, res){
       return res.status(404).json({ message: "Rental not found" });
     }
 
-    //  Check 
+    //  Check if it is related to the user or not
     if (rental.userId !== req.user.id) {
       return res.status(403).json({ message: "Unauthorized" });
     }
@@ -219,7 +222,7 @@ async function refundDeposit(req, res){
           rentalAmount: 0,
           depositAmount: depositAmount,   
           totalAmount: depositAmount,     
-          paymentMethod: "online",
+          paymentMethod: "upi",
           type: "REFUND",
           status: "REFUNDED",
           refundedAt: new Date()
@@ -267,115 +270,13 @@ async function getMyTransactions(req,res){
   }
 };
 
-async function completeRental(req, res){
-  try {
-    const { rentalId } = req.body;
 
-    const rental = await prisma.rental.findUnique({
-      where: { id: rentalId }
-    });
+ 
 
-    if (!rental) {
-      return res.status(404).json({ message: "Rental not found" });
-    }
-
-    if (rental.status !== "ACTIVE") {
-      return res.status(400).json({ message: "Rental active nahi hai" });
-    }
-
-    const result = await prisma.$transaction(async (tx) => {
-
-      await tx.rental.update({
-        where: { id: rentalId },
-        data: { status: "COMPLETED" }
-      });
-
-      // Item available karo
-      await tx.item.update({
-        where: { id: rental.itemId },
-        data: { availability: true }
-      });
-
-      return { message: "Rental completed" };
-    });
-
-    res.json(result);
-
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-async function getTransactionById(req, res){
-  try {
-    const transaction = await prisma.transaction.findUnique({
-      where: { id: req.params.id },
-      include: {
-        rental: {
-          include: {
-            item: {
-              select: { name: true, category: true }
-            }
-          }
-        },
-        user: {
-          select: { name: true, email: true }
-        }
-      }
-    });
-
-    if (!transaction) {
-      return res.status(404).json({ message: "Transaction not found" });
-    }
-
-    // Sirf apni transaction dekh sakte hai
-    if (transaction.userId !== req.user.id) {
-      return res.status(403).json({ message: "Unauthorized" });
-    }
-
-    res.json(transaction);
-
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-}
-
-
-async function getAllTransactions(req, res){
-  try {
-    // Admin check
-    if (req.user.role !== "ADMIN") {
-      return res.status(403).json({ message: "Admin only" });
-    }
-
-    const transactions = await prisma.transaction.findMany({
-      include: {
-        user: {
-          select: { name: true, email: true }
-        },
-        rental: {
-          include: {
-            item: {
-              select: { name: true }
-            }
-          }
-        }
-      },
-      orderBy: { createdAt: "desc" }
-    });
-
-    res.json(transactions);
-
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
 
 module.exports={
     createInitialPayment,
     refundDeposit,
     extendRentalPayment,
     getMyTransactions,
-    completeRental,
-    getTransactionById
 }

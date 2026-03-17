@@ -8,7 +8,8 @@ async function createReview(req,res){
       return res.status(400).json({ message: "Rental ID is required" });
     }
     const rental = await prisma.rental.findUnique({
-      where: { id: rentalId }
+      where: { id: rentalId },
+     
     });
 
     if (!rental) {
@@ -40,7 +41,8 @@ async function createReview(req,res){
         rentalId,
         userId: req.user.id,
         rating,
-        comment
+        comment,
+        itemId:  rental.itemId,
       }
     });
 

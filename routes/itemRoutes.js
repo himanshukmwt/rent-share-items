@@ -8,20 +8,18 @@ const {
   createItem,
   getAllItems,
   getItemById,
-  updateItem,
+  getMyItems,
   deleteItem,
   getFilteredItems,
   searchItems,
-  getPaginatedItems
 } = require("../controllers/item");
 
 router.post("/", authMiddleware,validate(createItemSchema),upload.array('images', 4), createItem);
 router.get("/filter", getFilteredItems);
 router.get("/search", searchItems);
-router.get("/page", getPaginatedItems);
+router.get("/my", authMiddleware, getMyItems)
 router.get("/", getAllItems);
 router.get("/:id",authMiddleware, getItemById);
-router.put("/:id", authMiddleware, updateItem);
 router.delete("/:id", authMiddleware, deleteItem);
 
 

@@ -79,6 +79,7 @@ model Item {
 
   rentals         Rental[]
   carts           Cart[]
+  reviews         Review[]
 }
 
 model Cart {
@@ -102,11 +103,15 @@ model Rental {
   endDate       DateTime
   rentalAmount  Float
   depositAmount   Float         @default(0)
-   platformFee   Float          @default(0)
+  platformFee   Float          @default(0)
   status        RentalStatus @default(PENDING)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   expiresAt   DateTime?
+  damageReport    String?  
+  damageAmount    Float?    
+  isDamaged       Boolean   @default(false)
+  damageProofUrls String[] 
 
   transaction   Transaction[]
   review        Review?
@@ -116,6 +121,7 @@ enum RentalStatus {
   PENDING
   CONFIRMED
   ACTIVE
+  RETURNING  
   COMPLETED
   CANCELLED
   EXPIRED 
@@ -160,6 +166,8 @@ model Review {
   rentalId  String   @unique
   user      User     @relation(fields: [userId], references: [id])
   userId    String
+  item     Item?     @relation(fields: [itemId], references: [id])
+   itemId   String?
   rating    Int
   comment   String?
   createdAt DateTime @default(now())

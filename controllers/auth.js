@@ -74,18 +74,12 @@ async function loginUser(req, res) {
       });
     }
 
-    // 4. Generate JWT
-    // const token = jwt.sign(
-    //   { userId: user._id },
-    //   process.env.JWT_SECRET,
-    //   { expiresIn: process.env.JWT_EXPIRES_IN }
-    // );
      const token=setUser(user);
      res.cookie("uid",token,{
        httpOnly: true,
        sameSite: "lax",
        maxAge: 24 * 60 * 60 * 1000
-     }); // for the website
+     }); 
 
     // 5. Send response
     return res.status(200).json({
@@ -128,11 +122,11 @@ async function getProfile(req, res) {
 
 async function updateProfile(req, res){
   try {
-    const { upiId } = req.body  // ✅ upiId le raha hai?
+    const { upiId } = req.body  
 
     const user = await prisma.user.update({
       where: { id: req.user.id },
-      data: { upiId }  // ✅ upiId save ho raha hai?
+      data: { upiId }  
     });
 
     res.json(user);
