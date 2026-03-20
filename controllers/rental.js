@@ -34,24 +34,27 @@ async function createRental(req,res){
     }
 
     // Step 4: KYC check
-    // const user = await prisma.user.findUnique({
-    //   where: { id: req.user.id }
-    // });
-    // if (!user.kycVerified) {
-    //   return res.status(403).json({ message: "Complete KYC first" });
-    // }
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id }
+    });
+    if (!user.kycVerified) {
+      return res.status(403).json({ message: "Complete KYC first" });
+    }
 
     // Conflict check (dates sahi hain ab)
     const start = new Date(startDate);  
     start.setHours(0, 0, 0, 0);
     const end = new Date(endDate);      
     end.setHours(23, 59, 59, 999);
+    
+    const returnBlock = new Date(end);
+    returnBlock.setDate(returnBlock.getDate() + 1);
 
     const conflict = await prisma.rental.findFirst({
       where: {
         itemId: itemId,
         status: { in: ["PENDING", "ACTIVE"] },
-        startDate: { lt: end },    
+        startDate: { lt: returnBlock },    
         endDate: { gt: start },
         OR: [
         { status: "ACTIVE" },
@@ -60,10 +63,15 @@ async function createRental(req,res){
     });
 
     if (conflict) {
-      return res.status(400).json({
-        message: "Item already booked for selected dates"
-      });
-    }
+    const bookedStart = new Date(conflict.startDate).toLocaleDateString('en-IN');
+    const returnDate = new Date(conflict.endDate);
+    returnDate.setDate(returnDate.getDate() + 1);
+    const bookedEnd = returnDate.toLocaleDateString('en-IN');
+    
+    return res.status(409).json({ 
+      message: `Item already booked from ${bookedStart} to ${bookedEnd}` 
+    });
+  }
 
 
     const days = Math.ceil(
@@ -77,7 +85,7 @@ async function createRental(req,res){
 
     // Platform fee - 5% of rental amount
     const platformFee   = Math.round(rentalAmount * 0.05);
-
+    const totalAmount=rentalAmount+depositAmount+platformFee;
    
     const result = await prisma.$transaction(async (tx) => {
 
@@ -91,6 +99,7 @@ async function createRental(req,res){
           rentalAmount,          
           depositAmount,
           platformFee,
+          totalAmount:totalAmount,
           status: "PENDING",
           expiresAt: new Date(Date.now() + 15 * 60 * 1000) // 15 min 
         }
@@ -101,8 +110,7 @@ async function createRental(req,res){
     
     res.status(201).json({
       message: "Rental created - Complete payment",
-      result,
-      totalAmount: rentalAmount + depositAmount + platformFee
+      result
     });
 
   } catch (error) {
@@ -149,6 +157,7 @@ async function getRentalById(req, res) {
         }
       }
     });
+ 
 
     if (!rental) {
       return res.status(404).json({ message: "Rental not found" });
@@ -167,10 +176,10 @@ async function getRentalById(req, res) {
 
     // Google Maps link
     let locationLink = null;
-    if (rental.status === "PENDING" &&  rental.item.owner.latitude ) {
+    if (rental.status === "ACTIVE" &&  rental.item.owner.latitude ) {
       locationLink = `https://www.google.com/maps?q=${rental.item.owner.latitude},${rental.item.owner.longitude}`
     }
-     
+
     res.json({ ...rental, locationLink });
 
   } catch (err) {

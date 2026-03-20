@@ -17,7 +17,7 @@ async function registerUser(req, res) {
       where: { email }
     });
     if (existingUser) {
-      return res.status(409).json({ message: "User already exists" });
+      return res.status(409).json({ message: "Email already registered. Please login instead." });
     }
 
     // 3. Hash password
@@ -32,12 +32,27 @@ async function registerUser(req, res) {
       }
     });
 
+     const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    const token=setUser(user);
+     res.cookie("uid",token,{
+       httpOnly: true,
+       sameSite: "lax",
+       maxAge: 24 * 60 * 60 * 1000
+     }); 
+
     res.status(201).json({
       message: "User registered successfully",
-      userId: user.id,
+      user: { id: user.id, name: user.name, email: user.email }
     });
   } catch (error) {
-    res.status(500).json({ message: "error occurred" });
+    res.status(500).json({ message: "Something went wrong... Please try again later." });
   }
 };
 
@@ -83,13 +98,12 @@ async function loginUser(req, res) {
 
     // 5. Send response
     return res.status(200).json({
-      token,
-      user
+      user: { id: user.id, name: user.name, email: user.email }
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Something went wrong... Please try again later.",
     });
   }
 }
@@ -116,7 +130,7 @@ async function getProfile(req, res) {
 
     return res.status(200).json(user);
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: "Something went wrong... Please try again later." });
   }
 };
 
@@ -131,7 +145,7 @@ async function updateProfile(req, res){
 
     res.json(user);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: "Something went wrong... Please try again later." });
   }
 }
 

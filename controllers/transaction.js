@@ -31,16 +31,6 @@ async function createInitialPayment(req,res){
             return res.status(403).json({ message: "Unauthorized" });
         }
 
-         const days = Math.ceil(
-        (new Date(rental.endDate) - new Date(rental.startDate)) / 
-        (1000 * 60 * 60 * 24)
-        );
-
-        const rentalAmount = days * rental.item.pricePerDay;
-        const depositAmount = rental.depositAmount;
-        const platformFee   = Math.round(rentalAmount * 0.05);
-        const totalAmount = rentalAmount + depositAmount+platformFee;
-
        
         const result = await prisma.$transaction(async (tx) => {
 
@@ -48,10 +38,6 @@ async function createInitialPayment(req,res){
             data: {
             rentalId: rental.id,
             userId: req.user.id,
-            rentalAmount: rentalAmount,       
-            depositAmount: depositAmount,
-            platformFee:platformFee,
-            totalAmount:totalAmount,
             paymentMethod: "upi",
             type: "PAYMENT",           
             status: "SUCCESS"
@@ -62,15 +48,18 @@ async function createInitialPayment(req,res){
             where: { id: rentalId },
             data: { status: "ACTIVE" }   
         });
-         await tx.item.update({
-            where: { id: rental.itemId },
-            data: { availability: false }
-          });
+        //  await tx.item.update({
+        //     where: { id: rental.itemId },
+        //     data: { availability: false }
+        //   });
 
         return transaction;
         });
 
-        res.status(201).json(result);
+        res.status(201).json({
+          result,
+          rental: rental
+        });
 
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -143,9 +132,6 @@ async function extendRentalPayment(req,res){
             data: {
             rentalId: rental.id,
             userId: req.user.id,        
-            rentalAmount: rentAmount,
-            depositAmount: 0,           
-            totalAmount: rentAmount,
             paymentMethod: "upi",
             type: "EXTENSION",          
             status: "SUCCESS"
@@ -161,7 +147,10 @@ async function extendRentalPayment(req,res){
         return transaction;
         });
 
-        res.json(result);
+        res.json({
+          result,
+          refundAmount: rental.depositAmount
+        });
 
      } catch (err) {
           res.status(500).json({ message: err.message });
@@ -218,10 +207,7 @@ async function refundDeposit(req, res){
       const refund = await tx.transaction.create({
         data: {
           rentalId: rental.id,           
-          userId: req.user.id,
-          rentalAmount: 0,
-          depositAmount: depositAmount,   
-          totalAmount: depositAmount,     
+          userId: req.user.id,   
           paymentMethod: "upi",
           type: "REFUND",
           status: "REFUNDED",
@@ -239,7 +225,8 @@ async function refundDeposit(req, res){
 
     res.status(201).json({
       message: "Deposit refunded successfully",
-      refund: result
+      refund: result,
+       refundAmount: rental.depositAmount
     });
 
   } catch (err) {
@@ -253,7 +240,11 @@ async function getMyTransactions(req,res){
       where: { userId: req.user.id },
       include: {
         rental: {
-          include: {
+          select : { 
+             totalAmount: true,
+             depositAmount: true,
+             rentalAmount:true,
+          // include: {
             item: {
               select: { name: true }
             }

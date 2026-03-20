@@ -38,7 +38,10 @@ router.get('/transactions', authMiddleware, adminOnly, async (req, res) => {
   const transactions = await prisma.transaction.findMany({
     include: {
       user:   { select: { name: true } },
-      rental: { include: { item: { select: { name: true } } } }
+            rental: { select: {totalAmount: true ,
+               item:
+               { select:
+                 { name: true } } }  }
     },
     orderBy: { createdAt: 'desc' }
   });
@@ -106,6 +109,31 @@ router.patch('/verify/:id', authMiddleware, adminOnly, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+});
+
+// Damage Reports
+router.get('/damages', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const damages = await prisma.rental.findMany({
+      where: { isDamaged: true },
+      include: {
+        item: { select: { name: true, images: true } },
+        user: { select: { name: true, email: true } },
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(damages);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.patch('/damages/:id/resolve', authMiddleware, adminOnly, async (req, res) => {
+  await prisma.rental.update({
+    where: { id: req.params.id },
+    data:  { damageResolved: true }
+  });
+  res.json({ message: "Damage resolved ✅" });
 });
 
 module.exports = router;

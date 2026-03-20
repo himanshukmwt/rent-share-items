@@ -5,6 +5,14 @@ const addToCart = async (req, res) => {
   try {
     const { itemId } = req.body;
 
+    const item = await prisma.item.findUnique({
+      where: { id: itemId }
+    });
+
+    if (!item) {
+      return res.status(404).json({ message: "Item not found" });
+    }
+
     let cart = await prisma.cart.findUnique({
       where: { userId: req.user.id }
     });

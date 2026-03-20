@@ -21,6 +21,14 @@ async function createItem(req,res){
           message: "This item is already listed" 
         });
       }
+
+      // Step 4: KYC check
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id }
+    });
+    if (!user.kycVerified || !user.upiId || !user.city || !user.area) { 
+      return res.status(403).json({ message: "Complete your profile first" });
+    }
   
       const multiplier    = depositRules[category?.toLowerCase()] ||depositRules.default;
       const depositAmount = Number(pricePerDay) * multiplier;
@@ -39,9 +47,9 @@ async function createItem(req,res){
       }
       const images = req.files?.map(file => file.path) || []
 
-      // if (images.length === 0) {
-      //   return res.status(400).json({ message: "Kam se kam 1 image required hai" });
-      // }
+      if (images.length === 0) {
+        return res.status(400).json({ message: "Kam se kam 1 image required hai" });
+      }
 
       if (images.length > 4) {
         return res.status(400).json({ message: "Maximum 4 images allowed hain" });
@@ -70,12 +78,39 @@ async function createItem(req,res){
 async function getAllItems(req,res){
     try{
       const items = await prisma.item.findMany({
+        where: {
+          ownerId: { not: req.user.id }  
+        },
       include: {
         owner: true
       } 
     });
       return res.status(200).json(items);
+    // const { startDate, endDate } = req.query;
+    // const items = await prisma.item.findMany({
+    //   where: {
+    //     ownerId: { not: req.user.id },
+    //     availability: true,
+    //     ...(startDate && endDate ? {
+    //       rentals: {
+    //         none: {
+    //           AND: [
+    //             { startDate: { lte: new Date(endDate) } },
+    //             { endDate: { gte: new Date(startDate) } },
+    //             { status: { notIn: ['CANCELLED', 'REJECTED'] } }
+    //           ]
+    //         }
+    //       }
+    //     } : {})
+    //   },
+    //   include: {
+    //     owner: true
+    //   }
+    // });
+
+    // return res.status(200).json(items);
       }catch (error) {
+        console.log(error);
      return res.status(500).json({ message: error.message });
   };
 };
@@ -99,6 +134,10 @@ async function  getItemById(req,res){
               select: { name: true }
             }
       }
+    },
+     rentals: {  
+      where: { status: { in: ['ACTIVE', 'PENDING'] } },
+      select: { startDate: true, endDate: true, status: true }
     }
   }
     });
@@ -214,57 +253,34 @@ for (const cart of carts) {
 };
 
 
-const getFilteredItems = async (req, res) => {
+async function getFilteredItems(req, res) {
   try {
-    const {
-      category,
-      minPrice,
-      maxPrice,
-      available,
-      owner
-    } = req.query;
-
-    let filter = {};
-
-    if (category) {
-      filter.category = category;
-    }
-
-    if (minPrice || maxPrice) {
-      filter.pricePerDay = {};
-      if (minPrice) {
-        filter.pricePerDay.gte = Number(minPrice); 
-      }
-      if (maxPrice) {
-        filter.pricePerDay.lte = Number(maxPrice); 
-      }
-    }
-
-    if (available !== undefined) {
-      filter.availability = available === "true";
-    }
-
-    if (owner) {
-      filter.ownerId = owner; 
-    }
+    const { category, maxPrice, city } = req.query;
 
     const items = await prisma.item.findMany({
-      where: filter,
+      where: {
+        ...(category && { 
+          category: { equals: category, mode: 'insensitive' } 
+        }),
+        ...(maxPrice && { 
+          pricePerDay: { lte: Number(maxPrice) } 
+        }),
+        ...(city && { 
+          owner: { 
+            city: { contains: city, mode: 'insensitive' } // ✅ Owner ki city
+          } 
+        }),
+      },
       include: {
-        owner: {
-          select: {
-            name: true  
-          }
-        }
+        owner: { select: { name: true, city: true, area: true } }
       }
     });
 
-    res.status(200).json(items);
-
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
-};
+}
 
 const searchItems = async (req, res) => {
   try {

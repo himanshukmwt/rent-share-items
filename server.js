@@ -20,6 +20,8 @@ const kycRoutes=require("./routes/kycRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const checkoutRoutes = require("./routes/checkoutRoutes");
 const adminRoutes = require('./routes/adminRoutes');
+const categoryRoutes = require("./routes/categoryRoutes");
+
 
 
 const app = express();
@@ -33,6 +35,7 @@ app.use(cors({
   origin: "http://localhost:5173", // replace with frontend domain
   // origin: "*",
   methods: ["GET","POST","PUT","DELETE","PATCH"],
+  // origin: "http://10.10.11.175:5173",
   credentials: true
 }));
 const limiter = rateLimit({
@@ -53,9 +56,10 @@ app.use("/api/cart",cartRoutes);
 app.use("/api/checkout",checkoutRoutes);
 app.use("/api/kyc",kycRoutes);
 app.use('/api/admin', adminRoutes);
+app.use("/api", categoryRoutes);
 
 // Har 5 min mein expired rentals clean 
-cron.schedule('*/5 * * * *', async () => {
+cron.schedule('*/10 * * * *', async () => {
   try {
         await prisma.rental.updateMany({
       where: { 

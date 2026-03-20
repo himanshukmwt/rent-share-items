@@ -57,11 +57,14 @@ const checkout = async (req, res) => {
     const end = new Date(endDate);
     end.setHours(23, 59, 59, 999);
 
+    const returnBlock = new Date(end);
+    returnBlock.setDate(returnBlock.getDate() + 1);
+
     const conflict = await prisma.rental.findFirst({
       where: {
         itemId,
         status: { in: ["PENDING", "ACTIVE"] },
-        startDate: { lt: end },
+        startDate: { lt: returnBlock },
         endDate: { gt: start },
         OR: [
           { status: "ACTIVE" },
@@ -69,11 +72,16 @@ const checkout = async (req, res) => {
       }
     });
 
-    if (conflict) {
-      return res.status(400).json({ 
-        message: "Item already booked for these dates" 
-      });
-    }
+     if (conflict) {
+    const bookedStart = new Date(conflict.startDate).toLocaleDateString('en-IN');
+    const returnDate = new Date(conflict.endDate);
+    returnDate.setDate(returnDate.getDate() + 1);
+    const bookedEnd = returnDate.toLocaleDateString('en-IN');
+    
+    return res.status(409).json({ 
+      message: `Item already booked from ${bookedStart} to ${bookedEnd}` 
+    });
+  }
 
     // Amount calculate
     const days = Math.ceil(
@@ -84,7 +92,8 @@ const checkout = async (req, res) => {
 
     const multiplier = depositRules[item.category.toLowerCase()] || depositRules.default;
     const depositAmount = item.pricePerDay * multiplier;
-    const totalAmount = rentalAmount + depositAmount;
+     const platformFee   = Math.round(rentalAmount * 0.05);
+    const totalAmount = rentalAmount + depositAmount+platformFee;
 
     // Sab ek transaction mein
     const result = await prisma.$transaction(async (tx) => {
@@ -98,6 +107,8 @@ const checkout = async (req, res) => {
           endDate: new Date(endDate),
           rentalAmount,
           depositAmount,
+          platformFee,
+          totalAmount,
           status: "ACTIVE",
           expiresAt: new Date(Date.now() + 15 * 60 * 1000) // 15 min
         }
@@ -108,9 +119,6 @@ const checkout = async (req, res) => {
         data: {
           rentalId: rental.id,
           userId: req.user.id,
-          rentalAmount: rentalAmount,
-          depositAmount,
-          totalAmount,
           paymentMethod: "online",
           type: "PAYMENT",
           status: "SUCCESS"
@@ -118,10 +126,10 @@ const checkout = async (req, res) => {
       });
 
       // Item unavailable karo
-      await tx.item.update({
-        where: { id: itemId },
-        data: { availability: false }
-      });
+      // await tx.item.update({
+      //   where: { id: itemId },
+      //   data: { availability: false }
+      // });
 
       // Item cart se remove karo
       await tx.cart.update({

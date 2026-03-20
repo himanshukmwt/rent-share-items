@@ -8,9 +8,22 @@ const submitKYC = async (req, res) => {
     const documentImageUrl = req.files?.document?.[0]?.path
     const selfieUrl        = req.files?.selfie?.[0]?.path
 
-    if (!documentImageUrl) {
-      return res.status(400).json({ message: "Document image required" })
-    };
+    // if (!documentImageUrl) {
+    //   return res.status(400).json({ message: "Document image required" })
+    // };
+
+    // if (!documentType) {
+    // return res.status(400).json({ message: "Document type required hai" });
+    // }
+    // if (!documentNumber) {
+    //   return res.status(400).json({ message: "Document number required hai" });
+    // }
+    // if (!documentPhoto) {
+    //   return res.status(400).json({ message: "Document photo required hai" });
+    // }
+    // if (!selfieUrl) {
+    //   return res.status(400).json({ message: "Selfie required hai" });
+    // }
     
     const existing = await prisma.kYC.findUnique({
       where: { userId: req.user.id }
@@ -59,7 +72,6 @@ const getMyKYC = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
 
 
 module.exports = {
