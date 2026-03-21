@@ -133,7 +133,114 @@ router.patch('/damages/:id/resolve', authMiddleware, adminOnly, async (req, res)
     where: { id: req.params.id },
     data:  { damageResolved: true }
   });
-  res.json({ message: "Damage resolved ✅" });
+  res.json({ message: "Damage resolved " });
+});
+
+//delete item
+router.delete('/items/:id',authMiddleware,adminOnly, async (req, res) => {
+  try {
+    const item = await prisma.item.findUnique({
+      where: { id: req.params.id }
+    });
+
+    if (!item) {
+      return res.status(404).json({ message: "Item not found" });
+    }
+
+    const activeRental = await prisma.rental.findFirst({
+      where: {
+        itemId: req.params.id,
+        status: { in: ["ACTIVE", "PENDING", "RETURNING"] }
+      }
+    });
+
+    if (activeRental) {
+      return res.status(400).json({ 
+        message: "Item abhi rented/returning hai — delete nahi kar sakte" 
+      });
+    }
+
+    await prisma.rental.deleteMany({ where: { itemId: req.params.id } });
+    await prisma.review.deleteMany({ where: { itemId: req.params.id } });
+    const carts = await prisma.cart.findMany({
+  where: {
+    items: { some: { id: req.params.id } }
+  }
+});
+
+for (const cart of carts) {
+  await prisma.cart.update({
+    where: { id: cart.id },
+    data: {
+      items: { disconnect: { id: req.params.id } }
+    }
+  });
+}
+
+    await prisma.item.delete({ where: { id: req.params.id } });
+
+    res.json({ message: "Item deleted successfully" });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
+router.delete('/users/:id',authMiddleware,adminOnly, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.params.id }
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.role === 'ADMIN') {
+      return res.status(400).json({ message: "Admin ko delete nahi kar sakte" });
+    }
+
+    const userItems = await prisma.item.findMany({ 
+  where: { ownerId: req.params.id }, 
+  select: { id: true } 
+});
+const itemIds = userItems.map(i => i.id);
+
+// ✅ User ki rentals find karo
+const userRentals = await prisma.rental.findMany({
+  where: { 
+    OR: [
+      { userId: req.params.id },
+      { itemId: { in: itemIds } }
+    ]
+  },
+  select: { id: true }
+});
+const rentalIds = userRentals.map(r => r.id);
+
+// ✅ Transactions delete karo — rentalId se
+await prisma.transaction.deleteMany({ 
+  where: { rentalId: { in: rentalIds } }
+});
+
+// ✅ Ab rentals delete karo
+await prisma.rental.deleteMany({ 
+  where: { id: { in: rentalIds } } 
+});
+
+await prisma.review.deleteMany({ where: { userId: req.params.id } });
+await prisma.kYC.deleteMany({ where: { userId: req.params.id } });
+await prisma.cart.deleteMany({ where: { userId: req.params.id } });
+await prisma.item.deleteMany({ where: { ownerId: req.params.id } });
+await prisma.user.delete({ where: { id: req.params.id } });
+    res.json({ message: "User deleted successfully" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
 });
 
 module.exports = router;
