@@ -3,6 +3,7 @@ const router = express.Router();
 const prisma = require('../config/prisma');
 const { authMiddleware } = require('../middleware/auth');
 const  adminOnly  = require('../middleware/admin');
+const razorpay = require('../config/razorpay');
 
 // All Users
 router.get('/users', authMiddleware, adminOnly, async (req, res) => {
@@ -26,7 +27,7 @@ router.get('/rentals', authMiddleware, adminOnly, async (req, res) => {
   const rentals = await prisma.rental.findMany({
     include: {
       user:  { select: { name: true } },
-      item:  { include: { owner: { select: { name: true } } } }
+      item:  { include: { owner: { select: { name: true,  upiId: true } } } }
     },
     orderBy: { createdAt: 'desc' }
   });
@@ -208,7 +209,6 @@ router.delete('/users/:id',authMiddleware,adminOnly, async (req, res) => {
 });
 const itemIds = userItems.map(i => i.id);
 
-// ✅ User ki rentals find karo
 const userRentals = await prisma.rental.findMany({
   where: { 
     OR: [
@@ -220,12 +220,9 @@ const userRentals = await prisma.rental.findMany({
 });
 const rentalIds = userRentals.map(r => r.id);
 
-// ✅ Transactions delete karo — rentalId se
 await prisma.transaction.deleteMany({ 
   where: { rentalId: { in: rentalIds } }
 });
-
-// ✅ Ab rentals delete karo
 await prisma.rental.deleteMany({ 
   where: { id: { in: rentalIds } } 
 });
@@ -239,6 +236,116 @@ await prisma.user.delete({ where: { id: req.params.id } });
 
   } catch (err) {
     console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
+// Pending Reviews
+router.get('/pending-reviews', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const rentals = await prisma.rental.findMany({
+      where: { status: "PENDING_REVIEW" },
+      include: {
+        item: { select: { name: true, images: true } },
+        user: { select: { name: true, email: true } },
+        transaction: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(rentals);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Admin Approve
+router.post('/approve-rental', authMiddleware, adminOnly, async (req, res) => {
+  try {
+  const { rentalId } = req.body;
+ 
+
+const rental = await prisma.rental.findUnique({
+  where: { id: rentalId },
+  include: { item: true }  // transaction include mat karo
+});
+
+const paymentTxn = await prisma.transaction.findFirst({
+  where: { 
+    rentalId: rentalId,
+    type:     "PAYMENT"
+  }
+});
+
+console.log("Query rentalId:", rentalId);
+console.log("Found:", paymentTxn);
+
+
+
+  if (!rental) {
+    return res.status(404).json({ message: "Rental not found" });
+  }
+
+
+  console.log("Rental status:", rental.status);
+  console.log("isDamaged:", rental.isDamaged);
+  console.log("PaymentTxn:", paymentTxn);
+  console.log("RazorpayId:", paymentTxn?.razorpayId);
+  console.log("DepositAmount:", rental.depositAmount);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.rental.update({
+      where: { id: rentalId },
+      data: {
+        status:         "COMPLETED",
+        damageResolved: true
+      }
+    });
+
+    await tx.item.update({
+      where: { id: rental.itemId },
+      data:  { availability: true }
+    });
+
+    // Refund calculate
+    if (paymentTxn?.razorpayId) {
+      let refundAmount = 0;
+
+      if (!rental.isDamaged) {
+        refundAmount = rental.depositAmount;          // Full refund
+      } else if (rental.damageAmount > 0) {
+        refundAmount = rental.depositAmount - rental.damageAmount; // Partial
+      } else {
+        refundAmount = 0;                             // No refund
+      }
+
+      if (refundAmount > 0) {
+        const refund = await razorpay.payments.refund(
+          paymentTxn.razorpayId,  
+          { amount: refundAmount * 100 }
+  //          { 
+  //   amount: refundAmount * 100,
+  //   speed: "optimum"  //  Instant refund
+  // }
+        );
+
+        await tx.transaction.create({
+          data: {
+            rentalId,
+            userId:        rental.userId,
+            paymentMethod: "razorpay",
+            type:          "REFUND",
+            status:        "SUCCESS",
+            razorpayId:    refund.id,
+            refundedAt:    new Date()
+          }
+        });
+      }
+    }
+  });
+  res.json({ message: "Rental approved" });
+
+} catch (err) {
     res.status(500).json({ message: err.message });
   }
 });

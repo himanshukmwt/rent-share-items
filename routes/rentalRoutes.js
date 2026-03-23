@@ -9,9 +9,8 @@ const {
   getMyRentals,
   getRentalById,
   completeRental,
-  reportMinorDamage,
-  reportMajorDamage,
   getOwnerRentals,
+  ownerRequest,
   returnItem
 } = require("../controllers/rental");
 
@@ -20,9 +19,8 @@ router.get("/my", authMiddleware, getMyRentals);
 router.get("/owner", authMiddleware, getOwnerRentals);
 router.get("/:id", authMiddleware, getRentalById);
 router.patch("/complete",authMiddleware,completeRental);
-router.post("/damage/minor", authMiddleware,upload.array('damagePhotos', 3), reportMinorDamage);
-router.post("/damage/major", authMiddleware,upload.array('damagePhotos', 3), reportMajorDamage);
-router.patch("/return", authMiddleware, returnItem)
+router.patch("/return", authMiddleware, returnItem);
+router.post("/owner-request", authMiddleware,upload.array('damagePhotos', 3),ownerRequest);
 
 
 module.exports = router;

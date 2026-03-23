@@ -1,233 +1,82 @@
+const razorpay = require('../config/razorpay');
+const crypto = require('crypto');
 const prisma = require('../config/prisma');
 
-async function createInitialPayment(req,res){
-    try{
-        const {rentalId}= req.body;
-        const rental= await prisma.rental.findUnique({
-            where: { id: rentalId },
-            include: { item: true },
-            //  select: { upiId: true }
-            });
-
-         const user = await prisma.user.findUnique({
-            where: { id: req.user.id },
-            select: { upiId: true }
-          });
-
-         if (!user.upiId) {
-            return res.status(400).json({ 
-              message: "Pehle profile mein UPI ID save karo" 
-            });
-          }
-        if(!rental){
-            return res.status(404).json({message:"Rental not found"});
-        }
-
-        if (rental.status === "ACTIVE") {
-           return res.status(400).json({ message: "Already paid" });
-        }
-
-        if (rental.userId !== req.user.id) {
-            return res.status(403).json({ message: "Unauthorized" });
-        }
-
-       
-        const result = await prisma.$transaction(async (tx) => {
-
-        const transaction = await tx.transaction.create({
-            data: {
-            rentalId: rental.id,
-            userId: req.user.id,
-            paymentMethod: "upi",
-            type: "PAYMENT",           
-            status: "SUCCESS"
-            }
-        });
-
-        await tx.rental.update({
-            where: { id: rentalId },
-            data: { status: "ACTIVE" }   
-        });
-        //  await tx.item.update({
-        //     where: { id: rental.itemId },
-        //     data: { availability: false }
-        //   });
-
-        return transaction;
-        });
-
-        res.status(201).json({
-          result,
-          rental: rental
-        });
-
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-
-};
-
-async function extendRentalPayment(req,res){
-    try {
-        const { rentalId, newEndDate } = req.body;
-
-        // Rental dhundo
-        const rental = await prisma.rental.findUnique({
-        where: { id: rentalId },
-        include: { item: true }
-        });
-
-        if (!rental) {
-        return res.status(404).json({ message: "Rental not found" });
-        }
-
-        // Sirf apna rental extend kar sake
-        if (rental.userId !== req.user.id) {
-        return res.status(403).json({ message: "Unauthorized" });
-        }
-
-        //  Rental active check 
-        if (rental.status !== "ACTIVE") {
-        return res.status(400).json({ 
-            message: "Sirf active rental extend ho sakta hai" 
-        });
-        }
-
-        // S Date valid hai check 
-        const oldEnd = new Date(rental.endDate);
-        const newEnd = new Date(newEndDate);
-
-        if (newEnd <= oldEnd) {
-        return res.status(400).json({ message: "Invalid new date" });
-        }
-
-        // Conflict check karo new dates ke liye
-        const conflict = await prisma.rental.findFirst({
-        where: {
-            itemId: rental.itemId,
-            id: { not: rentalId },        
-            status: { in: ["PENDING", "ACTIVE"] },
-            startDate: { lt: newEnd },
-            endDate: { gt: oldEnd }
-        }
-        });
-
-        if (conflict) {
-        return res.status(400).json({ 
-            message: "Item already booked for extended dates" 
-        });
-        }
-
-        //  Extra amount calculate 
-        const extraDays = Math.ceil(
-        (newEnd - oldEnd) / (1000 * 60 * 60 * 24)
-        );
-        const rentAmount = extraDays * rental.item.pricePerDay;
-
-        //  Transaction + Rental update ek saath
-        const result = await prisma.$transaction(async (tx) => {
-
-        // Extension transaction 
-        const transaction = await tx.transaction.create({
-            data: {
-            rentalId: rental.id,
-            userId: req.user.id,        
-            paymentMethod: "upi",
-            type: "EXTENSION",          
-            status: "SUCCESS"
-            }
-        });
-
-        // Rental endDate update 
-        await tx.rental.update({
-            where: { id: rentalId },
-            data: { endDate: newEnd }
-        });
-
-        return transaction;
-        });
-
-        res.json({
-          result,
-          refundAmount: rental.depositAmount
-        });
-
-     } catch (err) {
-          res.status(500).json({ message: err.message });
-  }
-};
-
-async function refundDeposit(req, res){
- try {
+//  Order Create
+async function createOrder(req, res) {
+  try {
     const { rentalId } = req.body;
-
+    
     const rental = await prisma.rental.findUnique({
-      where: { id: rentalId },
-      include: { 
-        item: true,
-        transaction: true 
-      }
+      where: { id: rentalId }
     });
 
     if (!rental) {
       return res.status(404).json({ message: "Rental not found" });
     }
 
-    //  Check if it is related to the user or not
-    if (rental.userId !== req.user.id) {
-      return res.status(403).json({ message: "Unauthorized" });
-    }
-
-    if (rental.status !== "COMPLETED") {
-      return res.status(400).json({ message: "Item return karo pehle" });
-    }
-
-    // depositAmount check 
-    const depositAmount = rental.depositAmount;
-
-    if (!depositAmount || depositAmount === 0) {
-      return res.status(400).json({ message: "No deposit to refund" });
-    }
-
-    // Already refunded check
-    const alreadyRefunded = await prisma.transaction.findFirst({
-      where: {
-        rentalId: rental.id,
-        type: "REFUND"
-      }
+    try {
+    const order = await razorpay.orders.create({
+      amount:   rental.totalAmount * 100,
+      currency: "INR",
+      // receipt:  `rental_${rental.id}`,
+     receipt: rental.id.substring(0, 40),
+      notes: { rentalId: rental.id, userId: req.user.id }
     });
 
-    if (alreadyRefunded) {
-      return res.status(400).json({ message: "Deposit already refunded" });
+    res.json({
+      orderId:  order.id,
+      amount:   rental.totalAmount,
+      currency: "INR",
+      keyId:    process.env.RAZORPAY_KEY_ID
+    });
+
+     } catch (razorpayErr) {
+      res.status(500).json({ message: razorpayErr.message });
+    }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+}
+
+//  Payment Verify
+async function verifyPayment(req, res) {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, rentalId } = req.body;
+
+    const sign = razorpay_order_id + "|" + razorpay_payment_id;
+    const expectedSign = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(sign)
+      .digest("hex");
+
+    if (razorpay_signature !== expectedSign) {
+      return res.status(400).json({ message: "Invalid payment signature" });
     }
 
-    // Refund transaction
-    const result = await prisma.$transaction(async (tx) => {
+    const rental = await prisma.rental.findUnique({
+      where: { id: rentalId }
+    });
 
-      const refund = await tx.transaction.create({
+    await prisma.$transaction(async (tx) => {
+      await tx.transaction.create({
         data: {
-          rentalId: rental.id,           
-          userId: req.user.id,   
-          paymentMethod: "upi",
-          type: "REFUND",
-          status: "REFUNDED",
-          refundedAt: new Date()
+          rentalId,
+          userId:        req.user.id,
+          paymentMethod: "razorpay",
+          type:          "PAYMENT",
+          status:        "SUCCESS",
+          razorpayId:    razorpay_payment_id
         }
       });
 
-      await tx.item.update({
-        where: { id: rental.itemId },
-        data: { availability: true }
+      await tx.rental.update({
+        where: { id: rentalId },
+        data:  { status: "ACTIVE" }
       });
-
-      return refund;
     });
 
-    res.status(201).json({
-      message: "Deposit refunded successfully",
-      refund: result,
-       refundAmount: rental.depositAmount
-    });
+    res.json({ message: "Payment successful" });
 
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -244,7 +93,6 @@ async function getMyTransactions(req,res){
              totalAmount: true,
              depositAmount: true,
              rentalAmount:true,
-          // include: {
             item: {
               select: { name: true }
             }
@@ -266,8 +114,7 @@ async function getMyTransactions(req,res){
 
 
 module.exports={
-    createInitialPayment,
-    refundDeposit,
-    extendRentalPayment,
-    getMyTransactions,
+    createOrder,
+  verifyPayment,
+  getMyTransactions,
 }

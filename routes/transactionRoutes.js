@@ -3,17 +3,16 @@ const router = express.Router();
 
 const { authMiddleware } = require("../middleware/auth");
 
+
+
 const {
-  createInitialPayment,
-  refundDeposit,
-  extendRentalPayment,
+  createOrder,
+  verifyPayment,
   getMyTransactions,
-} = require("../controllers/transaction");
+} = require('../controllers/transaction');
 
-router.post("/pay", authMiddleware, createInitialPayment);
-
-// router.post("/extend", authMiddleware, extendRentalPayment);
-router.post("/refund",authMiddleware,refundDeposit);
-router.get("/my", authMiddleware, getMyTransactions);
+router.post("/order",authMiddleware, createOrder);
+router.post("/verify",authMiddleware, verifyPayment);
+router.get("/my",authMiddleware, getMyTransactions);
 
 module.exports = router;
