@@ -58,7 +58,7 @@ app.use("/api/kyc",kycRoutes);
 app.use('/api/admin', adminRoutes);
 app.use("/api", categoryRoutes);
 
-// Har 5 min mein expired rentals clean 
+// Har 10 min mein expired rentals clean 
 cron.schedule('*/10 * * * *', async () => {
   try {
         await prisma.rental.updateMany({

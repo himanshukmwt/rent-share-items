@@ -29,51 +29,25 @@ async function registerUser(req, res) {
 
      const otp = Math.floor(100000 + Math.random() * 900000);
 
-  // otpStore me otp save 
-  // otpStore[email] = {
-  //   otp,
-  //   userData: { name, email, password: hashedPassword },
-  //   expiresAt: Date.now() + 10 * 60 * 1000
-  // };
+   //otpStore me otp save 
+  otpStore[email] = {
+    otp,
+    userData: { name, email, password: hashedPassword },
+    expiresAt: Date.now() + 10 * 60 * 1000
+  };
 
-  // await transporter.sendMail({
-  //   from: process.env.EMAIL_USER,
-  //   to: email,
-  //   subject: 'Verify your email',
-  //   html: `<h2>Your OTP is: <b>${otp}</b></h2><p>Valid for 10 minutes</p>`
-  // });
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'Verify your email',
+    html: `<h2>Your OTP is: <b>${otp}</b></h2><p>Valid for 10 minutes</p>`
+  });
 
-  // res.status(200).json({ message: "OTP sent to your email" });
+  res.status(200).json({ message: "OTP sent to your email" });
 
-    // 4. Create user
-    const user = await prisma.user.create({
-      data:{
-        name,
-        email,
-        password: hashedPassword,
-      }
-    });
-
-     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-      });
-    }
-
-    const token=setUser(user);
-     res.cookie("uid",token,{
-       httpOnly: true,
-       sameSite: "lax",
-       maxAge: 24 * 60 * 60 * 1000
-     }); 
-
-    res.status(201).json({
-      message: "User registered successfully",
-      user: { id: user.id, name: user.name, email: user.email }
-    });
+   
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -191,10 +165,7 @@ const verifyOTP = async (req, res) => {
   const { email, otp } = req.body;
 
   const stored = otpStore[email];
- console.log('otpStore:', otpStore);        
-  console.log('email:', email);              
-  console.log('stored:', otpStore[email]); 
-  // Check karo
+  // Check otp
   if (!stored) {
     return res.status(400).json({ message: 'OTP not found' });
   }
@@ -206,37 +177,37 @@ const verifyOTP = async (req, res) => {
     return res.status(400).json({ message: 'Invalid OTP' });
   }
 
-   // OTP sahi — ab DB me save karo
+   // OTP sahi — ab DB me save
   const user = await prisma.user.create({
     data: stored.userData
   });
 
 
-  delete otpStore[email]; // Use hone ke baad delete karo
-   
-  //  const isMatch = await bcrypt.compare(password, user.password);
-  //   if (!isMatch) {
-  //     return res.status(401).json({
-  //       success: false,
-  //       message: "Invalid email or password",
-  //     });
-  //   }
-  // User verified mark karo
+  delete otpStore[email]; // Use hone ke baad delete   
+
   const token=setUser(user);
      res.cookie("uid",token,{
        httpOnly: true,
        sameSite: "lax",
+       secure: process.env.NODE_ENV === 'production',
        maxAge: 24 * 60 * 60 * 1000
      }); 
 
-    res.status(201).json({
+   return res.status(201).json({
       message: "User registered successfully",
       user: { id: user.id, name: user.name, email: user.email }
     });
   
-  res.json({ message: 'Email verified successfully' });
 };
 
+async function logout(req, res){
+  res.clearCookie('uid', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production'
+  });
+  res.json({ message: 'Logged out successfully' });
+};
 
 module.exports = {
   registerUser,
@@ -244,5 +215,6 @@ module.exports = {
   getProfile,
   updateProfile,
   updateLocation,
-  verifyOTP
+  verifyOTP,
+  logout
 };
