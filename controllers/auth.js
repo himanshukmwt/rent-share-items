@@ -88,7 +88,8 @@ async function loginUser(req, res) {
      const token=setUser(user);
      res.cookie("uid",token,{
        httpOnly: true,
-       sameSite: "lax",
+       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+       secure: process.env.NODE_ENV === 'production',
        maxAge: 72 * 60 * 60 * 1000
      }); 
 
@@ -188,8 +189,10 @@ const verifyOTP = async (req, res) => {
   const token=setUser(user);
      res.cookie("uid",token,{
        httpOnly: true,
-       sameSite: "lax",
-       secure: process.env.NODE_ENV === 'production',
+      //  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite:"lax",
+      secure:false,
+      //  secure: process.env.NODE_ENV === 'production',
        maxAge: 72 * 60 * 60 * 1000
      }); 
 
