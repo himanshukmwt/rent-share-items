@@ -89,7 +89,7 @@ async function loginUser(req, res) {
      res.cookie("uid",token,{
        httpOnly: true,
        sameSite: "lax",
-       maxAge: 24 * 60 * 60 * 1000
+       maxAge: 72 * 60 * 60 * 1000
      }); 
 
     // 5. Send response
@@ -190,7 +190,7 @@ const verifyOTP = async (req, res) => {
        httpOnly: true,
        sameSite: "lax",
        secure: process.env.NODE_ENV === 'production',
-       maxAge: 24 * 60 * 60 * 1000
+       maxAge: 72 * 60 * 60 * 1000
      }); 
 
    return res.status(201).json({
