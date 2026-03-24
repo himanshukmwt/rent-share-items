@@ -31,6 +31,7 @@ app.use(express.json());
 app.use(express.urlencoded({extended :false}));
 
 app.use(helmet());
+app.set('trust proxy', 1);
 app.use(cors({
   origin: "http://localhost:5173", // replace with frontend domain
   // origin: "*",
