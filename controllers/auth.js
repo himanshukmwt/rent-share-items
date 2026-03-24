@@ -2,7 +2,8 @@ const prisma = require("../config/prisma");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const {setUser}=require("../service/auth");
-const transporter = require('../config/email');
+const sendOTPEmail = require('../config/email');
+
 
 const otpStore = {};
 
@@ -36,12 +37,7 @@ async function registerUser(req, res) {
     expiresAt: Date.now() + 10 * 60 * 1000
   };
 
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: 'Verify your email',
-    html: `<h2>Your OTP is: <b>${otp}</b></h2><p>Valid for 10 minutes</p>`
-  });
+   await sendOTPEmail(email, otp);
 
   res.status(200).json({ message: "OTP sent to your email" });
 
