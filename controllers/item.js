@@ -26,7 +26,7 @@ async function createItem(req,res){
     const user = await prisma.user.findUnique({
       where: { id: req.user.id }
     });
-    if (!user.kycVerified || !user.upiId || !user.city || !user.area) { 
+    if (!user.kycVerified || !user.upiId || !user.city || !user.area || !user.phoneNumber) { 
       return res.status(403).json({ message: "Complete your profile first" });
     }
   
@@ -267,7 +267,7 @@ async function getFilteredItems(req, res) {
         }),
         ...(city && { 
           owner: { 
-            city: { contains: city, mode: 'insensitive' } // ✅ Owner ki city
+            city: { contains: city, mode: 'insensitive' } 
           } 
         }),
       },

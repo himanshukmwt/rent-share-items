@@ -137,6 +137,7 @@ async function getMyRentals(req,res){
   }
 };
 
+
 // Get Single Rental
 async function getRentalById(req, res) {
   try {
@@ -152,6 +153,7 @@ async function getRentalById(req, res) {
                 area:      true,
                 latitude:  true,
                 longitude: true,
+                phoneNumber: true,
               }
             }
           }
@@ -283,56 +285,6 @@ async function returnItem(req, res) {
   }
 };
 
-
-// Owner Request
-async function ownerRequest(req, res) {
-  try {
-    const { rentalId, damageReport, damageAmount } = req.body;
-    const damageProofUrls = req.files?.map(f => f.path) || [];
-
-    const rental = await prisma.rental.findUnique({
-      where: { id: rentalId },
-      include: { item: true }
-    });
-
-    if (!rental) {
-      return res.status(404).json({ message: "Rental not found" });
-    }
-
-    // Owner check
-    if (rental.item.ownerId !== req.user.id) {
-      return res.status(403).json({ message: "Unauthorized" });
-    }
-
-    if (rental.status !== "RETURNING") {
-      return res.status(400).json({ message: "Item return nahi hua abhi" });
-    }
-
-    const isDamaged = !!(damageReport);
-
-    // Damage proof required
-    if (isDamaged && damageProofUrls.length === 0) {
-      return res.status(400).json({ message: "Damage proof photo required" });
-    }
-
-    await prisma.rental.update({
-      where: { id: rentalId },
-      data: {
-        status:         "PENDING_REVIEW",
-        isDamaged,
-        damageReport:   damageReport || null,
-        damageAmount:   damageAmount ? Number(damageAmount) : null,
-        damageProofUrls
-      }
-    });
-
-    res.json({ message: "Request sent to admin" });
-
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
 // Owner Request
 async function ownerRequest(req, res) {
   try {
@@ -382,53 +334,6 @@ async function ownerRequest(req, res) {
   }
 }
 
-async function ownerRequest(req, res) {
-  try {
-    const { rentalId, damageReport, damageAmount } = req.body;
-    const damageProofUrls = req.files?.map(f => f.path) || [];
-
-    const rental = await prisma.rental.findUnique({
-      where: { id: rentalId },
-      include: { item: true }
-    });
-
-    if (!rental) {
-      return res.status(404).json({ message: "Rental not found" });
-    }
-
-    // Owner check
-    if (rental.item.ownerId !== req.user.id) {
-      return res.status(403).json({ message: "Unauthorized" });
-    }
-
-    if (rental.status !== "RETURNING") {
-      return res.status(400).json({ message: "Item return nahi hua abhi" });
-    }
-
-    const isDamaged = !!(damageReport);
-
-    // Damage proof required
-    if (isDamaged && damageProofUrls.length === 0) {
-      return res.status(400).json({ message: "Damage proof photo required" });
-    }
-
-    await prisma.rental.update({
-      where: { id: rentalId },
-      data: {
-        status:         "PENDING_REVIEW",
-        isDamaged,
-        damageReport:   damageReport || null,
-        damageAmount:   damageAmount ? Number(damageAmount) : null,
-        damageProofUrls
-      }
-    });
-
-    res.json({ message: "Request sent to admin" });
-
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-}
 
 module.exports={
     createRental,

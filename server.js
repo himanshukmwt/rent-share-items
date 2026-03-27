@@ -21,7 +21,7 @@ const cartRoutes = require("./routes/cartRoutes");
 const checkoutRoutes = require("./routes/checkoutRoutes");
 const adminRoutes = require('./routes/adminRoutes');
 const categoryRoutes = require("./routes/categoryRoutes");
-
+const ReportRoutes=require("./routes/reportRoutes");
 
 
 const app = express();
@@ -58,6 +58,7 @@ app.use("/api/checkout",checkoutRoutes);
 app.use("/api/kyc",kycRoutes);
 app.use('/api/admin', adminRoutes);
 app.use("/api", categoryRoutes);
+app.use("/api", ReportRoutes);
 
 // Har 10 min mein expired rentals clean 
 cron.schedule('*/10 * * * *', async () => {

@@ -129,11 +129,11 @@ async function getProfile(req, res) {
 
 async function updateProfile(req, res){
   try {
-    const { upiId } = req.body  
+    const { upiId,phoneNumber } = req.body  
 
     const user = await prisma.user.update({
       where: { id: req.user.id },
-      data: { upiId }  
+      data: { upiId,phoneNumber }  
     });
 
     res.json(user);
@@ -208,6 +208,75 @@ async function logout(req, res){
   res.json({ message: 'Logged out successfully' });
 };
 
+// Email se OTP bhejo
+async function forgotPassword(req, res) {
+  try {
+    const { email } = req.body;
+
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "Email registered nahi hai" });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000);
+
+
+    otpStore[email] = {
+      otp,
+      type: 'forgot_password',  
+      expiresAt: Date.now() + 10 * 60 * 1000
+    };
+
+    await sendOTPEmail(email, otp);
+
+    res.json({ message: "OTP sent to email", email });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+}
+
+// OTP verify and Password reset
+async function resetPassword(req, res) {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    const stored = otpStore[email];
+
+    if (!stored) {
+      return res.status(400).json({ message: "OTP expired ya invalid" });
+    }
+
+    if (stored.otp.toString() !== otp.toString()) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    if (Date.now() > stored.expiresAt) {
+      delete otpStore[email];
+      return res.status(400).json({ message: "OTP expired" });
+    }
+
+    // Password update 
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { email },
+      data:  { password: hashedPassword }
+    });
+
+
+    delete otpStore[email];
+
+    res.json({ message: "Password reset successful" });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+}
+
+
 module.exports = {
   registerUser,
   loginUser,
@@ -215,5 +284,7 @@ module.exports = {
   updateProfile,
   updateLocation,
   verifyOTP,
-  logout
+  logout,
+   forgotPassword,
+  resetPassword
 };
