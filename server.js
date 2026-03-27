@@ -79,6 +79,37 @@ cron.schedule('*/10 * * * *', async () => {
       data: { status: "EXPIRED" }
     });
 
+    // Extra charge calculate karo
+  const returningRentals = await prisma.rental.findMany({
+    where: { 
+      status: "RETURNING",
+      extraDays: null  
+    },
+    include: { item: true }
+  });
+
+  for (const rental of returningRentals) {
+    const today = new Date();
+    const endDate = new Date(rental.endDate);
+    
+    if (today > endDate) {
+      const extraDays = Math.ceil(
+        (today - endDate) / (1000 * 60 * 60 * 24)
+      );
+      const extraCharge = extraDays * rental.item.pricePerDay;
+
+      await prisma.rental.update({
+        where: { id: rental.id },
+        data: {
+          extraDays,
+          extraCharge
+        }
+      });
+
+      console.log(`Extra charge: ₹${extraCharge} for rental ${rental.id}`);
+    }
+  }
+
     
     if (expired.count > 0) {
       // console.log(`${expired.count} rentals expired `);

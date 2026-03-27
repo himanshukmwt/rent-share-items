@@ -78,6 +78,8 @@ model Item {
   ownerId         String   
   images          String[]
   attributes      Json?
+   extraDays      Int?    
+  extraCharge    Float?  
   createdAt       DateTime @default(now())
 
   rentals         Rental[]

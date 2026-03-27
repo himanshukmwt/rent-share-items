@@ -311,13 +311,33 @@ console.log("Found:", paymentTxn);
     if (paymentTxn?.razorpayId) {
       let refundAmount = 0;
 
-      if (!rental.isDamaged) {
-        refundAmount = rental.depositAmount;          // Full refund
-      } else if (rental.damageAmount > 0) {
-        refundAmount = rental.depositAmount - rental.damageAmount; // Partial
-      } else {
-        refundAmount = 0;                             // No refund
-      }
+      // if (!rental.isDamaged) {
+      //   refundAmount = rental.depositAmount;          // Full refund
+      // } else if (rental.damageAmount > 0) {
+      //   refundAmount = rental.depositAmount - rental.damageAmount; // Partial
+      // } else {
+      //   refundAmount = 0;                             // No refund
+      // }
+      // adminApprove mein refund calculate karte waq
+
+if (!rental.isDamaged) {
+
+  const extraCharge = rental.extraCharge || 0;
+  refundAmount = rental.depositAmount - extraCharge;
+  
+  // Refund negative nahi hona chahiye
+  if (refundAmount < 0) refundAmount = 0;
+
+} else if (rental.damageAmount > 0) {
+  // Minor damage + extra charge dono kato
+  const extraCharge = rental.extraCharge || 0;
+  refundAmount = rental.depositAmount - rental.damageAmount - extraCharge;
+  if (refundAmount < 0) refundAmount = 0;
+
+} else {
+  // Major damage - No refund
+  refundAmount = 0;
+}
 
       if (refundAmount > 0) {
         const refund = await razorpay.payments.refund(
