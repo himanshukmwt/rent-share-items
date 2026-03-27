@@ -20,7 +20,8 @@ router.get("/search", searchItems);
 router.get("/my", authMiddleware, getMyItems)
 router.get("/", authMiddleware,getAllItems);
 router.get("/:id",authMiddleware, getItemById);
-router.delete("/:id", authMiddleware, deleteItem);
+router.delete("/:id", authMiddleware, deleteItem);;
+
 
 
 
