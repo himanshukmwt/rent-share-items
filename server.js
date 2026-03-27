@@ -80,35 +80,35 @@ cron.schedule('*/10 * * * *', async () => {
     });
 
     // Extra charge calculate karo
-  const returningRentals = await prisma.rental.findMany({
-    where: { 
-      status: "RETURNING",
-      extraDays: null  
-    },
-    include: { item: true }
-  });
+  // const returningRentals = await prisma.rental.findMany({
+  //   where: { 
+  //     status: "RETURNING",
+  //     extraDays: null  
+  //   },
+  //   include: { item: true }
+  // });
 
-  for (const rental of returningRentals) {
-    const today = new Date();
-    const endDate = new Date(rental.endDate);
+  // for (const rental of returningRentals) {
+  //   const today = new Date();
+  //   const endDate = new Date(rental.endDate);
     
-    if (today > endDate) {
-      const extraDays = Math.ceil(
-        (today - endDate+1) / (1000 * 60 * 60 * 24)
-      );
-      const extraCharge = extraDays * rental.item.pricePerDay;
+  //   if (today > endDate) {
+  //     const extraDays = Math.ceil(
+  //       (today - endDate+1) / (1000 * 60 * 60 * 24)
+  //     );
+  //     const extraCharge = extraDays * rental.item.pricePerDay;
 
-      await prisma.rental.update({
-        where: { id: rental.id },
-        data: {
-          extraDays,
-          extraCharge
-        }
-      });
+  //     await prisma.rental.update({
+  //       where: { id: rental.id },
+  //       data: {
+  //         extraDays,
+  //         extraCharge
+  //       }
+  //     });
 
-      console.log(`Extra charge: ₹${extraCharge} for rental ${rental.id}`);
-    }
-  }
+  //     console.log(`Extra charge: ₹${extraCharge} for rental ${rental.id}`);
+  //   }
+  // }
 
     
     if (expired.count > 0) {
