@@ -45,6 +45,18 @@ router.get('/admin/reports', authMiddleware, adminOnly, async (req, res) => {
   }
 });
 
+router.patch('/admin/reports/:id', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    await prisma.report.update({
+      where: { id: req.params.id },
+      data: { status: 'RESOLVED' }
+    });
+    res.json({ message: 'Report resolved' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports=router;
 
 

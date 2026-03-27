@@ -94,7 +94,7 @@ cron.schedule('*/10 * * * *', async () => {
     
     if (today > endDate) {
       const extraDays = Math.ceil(
-        (today - endDate) / (1000 * 60 * 60 * 24)
+        (today - endDate+1) / (1000 * 60 * 60 * 24)
       );
       const extraCharge = extraDays * rental.item.pricePerDay;
 
