@@ -35,7 +35,7 @@ const submitKYC = async (req, res,next) => {
       data: {
         userId: req.user.id,
         documentType,
-        documentNumber,
+        documentNumber:encryptedNumber,
         documentImageUrl,
         selfieUrl,
         verificationStatus: "PENDING"
