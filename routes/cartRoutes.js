@@ -10,7 +10,7 @@ const {
   clearCart
 } = require("../controllers/cart");
 
-router.post("/add",authMiddleware,addToCart);
+router.post("/add",authMiddleware,validate(addToCartSchema),addToCart);
 router.get("/",authMiddleware,getMyCart);
 router.delete("/remove",authMiddleware,removeFromCart);
 router.delete("/clear",authMiddleware,clearCart);

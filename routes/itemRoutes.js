@@ -14,7 +14,7 @@ const {
   searchItems,
 } = require("../controllers/item");
 
-router.post("/", authMiddleware,validate(createItemSchema),upload.array('images', 4), createItem);
+router.post("/", authMiddleware,upload.array('images', 4),validate(createItemSchema), createItem);
 router.get("/filter", getFilteredItems);
 router.get("/search", searchItems);
 router.get("/my", authMiddleware, getMyItems)
