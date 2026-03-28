@@ -1,5 +1,5 @@
 const prisma = require('../config/prisma')
-const { encrypt } = require('../config/encryption');
+const { encrypt,decrypt } = require('../config/encryption');
 
 const submitKYC = async (req, res,next) => {
   try {

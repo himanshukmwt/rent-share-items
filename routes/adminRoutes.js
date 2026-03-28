@@ -4,7 +4,7 @@ const prisma = require('../config/prisma');
 const { authMiddleware } = require('../middleware/auth');
 const  adminOnly  = require('../middleware/admin');
 const razorpay = require('../config/razorpay');
-const { decrypt } = require('../config/encryption');
+const { encrypt,decrypt } = require('../config/encryption');
 
 // All Users
 router.get('/users', authMiddleware, adminOnly, async (req, res) => {
