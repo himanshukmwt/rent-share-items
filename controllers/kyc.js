@@ -1,35 +1,71 @@
 const prisma = require('../config/prisma')
 
+// const submitKYC = async (req, res) => {
+//   try {
+//     const { documentType, documentNumber } = req.body;
+
+//     // Cloudinary se URLs 
+//     const documentImageUrl = req.files?.document?.[0]?.path
+//     const selfieUrl        = req.files?.selfie?.[0]?.path
+
+//     const existing = await prisma.kYC.findUnique({
+//       where: { userId: req.user.id }
+//     });
+
+//     if (existing) {
+//       return res.status(400).json({ message: "KYC already submitted" });
+//     }
+
+//     const kyc = await prisma.kYC.create({
+//       data: {
+//         userId: req.user.id,
+//         documentType,
+//         documentNumber,
+//         documentImageUrl,
+//         selfieUrl,
+//         verificationStatus: "PENDING"
+//       }
+//     });
+
+//     await prisma.user.update({
+//       where: { id: req.user.id },
+//       data: { kycSubmitted: true }
+//     });
+
+//     res.status(201).json(kyc);
+
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// }
+
 const submitKYC = async (req, res) => {
   try {
     const { documentType, documentNumber } = req.body;
 
-    // Cloudinary se URLs 
-    const documentImageUrl = req.files?.document?.[0]?.path
-    const selfieUrl        = req.files?.selfie?.[0]?.path
+    const documentImageUrl = req.files?.document?.[0]?.path;
+    const selfieUrl = req.files?.selfie?.[0]?.path;
 
-    // if (!documentImageUrl) {
-    //   return res.status(400).json({ message: "Document image required" })
-    // };
-
-    // if (!documentType) {
-    // return res.status(400).json({ message: "Document type required hai" });
-    // }
-    // if (!documentNumber) {
-    //   return res.status(400).json({ message: "Document number required hai" });
-    // }
-    // if (!documentPhoto) {
-    //   return res.status(400).json({ message: "Document photo required hai" });
-    // }
-    // if (!selfieUrl) {
-    //   return res.status(400).json({ message: "Selfie required hai" });
-    // }
-    
     const existing = await prisma.kYC.findUnique({
       where: { userId: req.user.id }
     });
 
     if (existing) {
+      // ✅ Rejected hai toh update karo
+      if (existing.verificationStatus === 'REJECTED') {
+        const kyc = await prisma.kYC.update({
+          where: { userId: req.user.id },
+          data: {
+            documentType,
+            documentNumber,
+            documentImageUrl,
+            selfieUrl,
+            verificationStatus: 'PENDING'
+          }
+        });
+        return res.status(200).json(kyc);
+      }
+
       return res.status(400).json({ message: "KYC already submitted" });
     }
 
@@ -54,7 +90,7 @@ const submitKYC = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
-}
+};
 
 const getMyKYC = async (req, res) => {
   try {
