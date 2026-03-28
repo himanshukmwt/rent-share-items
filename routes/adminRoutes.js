@@ -59,11 +59,12 @@ router.get('/kyc', authMiddleware, adminOnly, async (req, res,next) => {
       },
       orderBy: { createdAt: 'desc' }
     });
-     const decryptedKycs = kycs.map(kyc => ({
-    ...kyc,
-    documentNumber: decrypt(kyc.documentNumber)  
-  }));
-    res.json(decryptedKycs);
+  //    const decryptedKycs = kycs.map(kyc => ({
+  //   ...kyc,
+  //   documentNumber: decrypt(kyc.documentNumber)  
+  // }));
+  //   res.json(decryptedKycs);
+  req.json(kycs);
   } catch (err) {
     next(err);
   }
