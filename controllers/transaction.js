@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const prisma = require('../config/prisma');
 
 //  Order Create
-async function createOrder(req, res) {
+async function createOrder(req, res, next) {
   try {
     const { rentalId } = req.body;
     
@@ -40,7 +40,7 @@ async function createOrder(req, res) {
 }
 
 //  Payment Verify
-async function verifyPayment(req, res) {
+async function verifyPayment(req, res, next) {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, rentalId } = req.body;
 
@@ -83,7 +83,7 @@ async function verifyPayment(req, res) {
   }
 }
 
-async function getMyTransactions(req,res){
+async function getMyTransactions(req,res,next){
      try {
     const transactions = await prisma.transaction.findMany({
       where: { userId: req.user.id },
@@ -105,7 +105,7 @@ async function getMyTransactions(req,res){
     res.json(transactions);
 
   }catch(err){
-    res.status(500).json({message:err.message});
+    next(err);
   }
 };
 

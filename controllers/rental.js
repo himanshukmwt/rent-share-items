@@ -2,7 +2,7 @@ const prisma = require('../config/prisma')
 const depositRules = require('../config/depositRules')
 const razorpay = require('../config/razorpay');
 
-async function createRental(req,res){
+async function createRental(req,res,next){
   try {
     const { itemId, startDate, endDate } = req.body;
 
@@ -120,7 +120,7 @@ async function createRental(req,res){
 };
 
 
-async function getMyRentals(req,res){
+async function getMyRentals(req,res,next){
     try{
         const rentals= await prisma.rental.findMany({
             where: { 
@@ -139,7 +139,7 @@ async function getMyRentals(req,res){
 
 
 // Get Single Rental
-async function getRentalById(req, res) {
+async function getRentalById(req, res, next) {
   try {
     const rental = await prisma.rental.findUnique({
       where: { id: req.params.id },
@@ -191,7 +191,7 @@ async function getRentalById(req, res) {
 };
 
 
-async function completeRental(req, res){
+async function completeRental(req, res, next){
   try {
     const { rentalId } = req.body;
 
@@ -236,7 +236,7 @@ async function completeRental(req, res){
   }
 };
 
-async function getOwnerRentals(req, res) {
+async function getOwnerRentals(req, res, next) {
   try {
     const rentals = await prisma.rental.findMany({
       where: {
@@ -256,7 +256,7 @@ async function getOwnerRentals(req, res) {
   }
 };
 
-async function returnItem(req, res) {
+async function returnItem(req, res, next) {
   try {
     const { rentalId } = req.body;
 
@@ -286,7 +286,7 @@ async function returnItem(req, res) {
 };
 
 // Owner Request
-async function ownerRequest(req, res) {
+async function ownerRequest(req, res, next) {
   try {
     const { rentalId, damageReport, damageAmount } = req.body;
     const damageProofUrls = req.files?.map(f => f.path) || [];

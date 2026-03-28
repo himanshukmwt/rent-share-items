@@ -1,7 +1,7 @@
  const prisma = require('../config/prisma')
 
  // Add to Cart
-const addToCart = async (req, res) => {
+const addToCart = async (req, res,next) => {
   try {
     const { itemId } = req.body;
 
@@ -47,7 +47,7 @@ const addToCart = async (req, res) => {
 }
 
 // Remove from Cart
-const removeFromCart = async (req, res) => {
+const removeFromCart = async (req, res,next) => {
   try {
     const { itemId } = req.body;
 
@@ -76,7 +76,7 @@ const removeFromCart = async (req, res) => {
 }
 
 // Get My Cart
-const getMyCart = async (req, res) => {
+const getMyCart = async (req, res,next) => {
   try {
     const cart = await prisma.cart.findUnique({
       where: { userId: req.user.id },
@@ -106,7 +106,7 @@ const getMyCart = async (req, res) => {
 }
 
 // Clear Cart
-const clearCart = async (req, res) => {
+const clearCart = async (req, res,next) => {
   try {
     const cart = await prisma.cart.findUnique({
       where: { userId: req.user.id },

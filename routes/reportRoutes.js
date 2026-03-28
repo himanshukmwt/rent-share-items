@@ -6,7 +6,7 @@ const { authMiddleware } = require("../middleware/auth");
 const  adminOnly  = require('../middleware/admin');
 
 
-router.post('/reports', authMiddleware, async (req, res) => {
+router.post('/reports', authMiddleware, async (req, res,next) => {
   try {
     const { type, description } = req.body;
 
@@ -28,7 +28,7 @@ router.post('/reports', authMiddleware, async (req, res) => {
   }
 });
 
-router.get('/admin/reports', authMiddleware, adminOnly, async (req, res) => {
+router.get('/admin/reports', authMiddleware, adminOnly, async (req, res,next) => {
   try {
     const reports = await prisma.report.findMany({
       include: {
@@ -44,7 +44,7 @@ router.get('/admin/reports', authMiddleware, adminOnly, async (req, res) => {
   }
 });
 
-router.patch('/admin/reports/:id', authMiddleware, adminOnly, async (req, res) => {
+router.patch('/admin/reports/:id', authMiddleware, adminOnly, async (req, res, next) => {
   try {
     await prisma.report.update({
       where: { id: req.params.id },

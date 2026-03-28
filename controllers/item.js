@@ -3,7 +3,7 @@ const { cloudinary } = require('../config/cloudinary');
 const depositRules = require('../config/depositRules');
 
 // Create item
-async function createItem(req,res){
+async function createItem(req,res,next){
   try{
       const {name,category,description,pricePerDay}=req.body;
       
@@ -75,7 +75,7 @@ async function createItem(req,res){
 };
 
 // Get All Items
-async function getAllItems(req,res){
+async function getAllItems(req,res,next){
     try{
       const items = await prisma.item.findMany({
         where: {
@@ -116,7 +116,7 @@ async function getAllItems(req,res){
 };
 
 // Get single item
-async function  getItemById(req,res){
+async function  getItemById(req,res,next){
    try {
     const item = await prisma.item.findUnique({
       where: { id: req.params.id },
@@ -153,7 +153,7 @@ async function  getItemById(req,res){
   }
 };
 
-async function getMyItems(req, res) {
+async function getMyItems(req, res, next) {
   try {
     const items = await prisma.item.findMany({
       where: { ownerId: req.user.id },
@@ -171,7 +171,7 @@ async function getMyItems(req, res) {
 }
 
 // Delete an item
-async function deleteItem(req,res){
+async function deleteItem(req,res,next){
   try{
     const item = await prisma.item.findUnique({
       where: { id: req.params.id }
@@ -253,7 +253,7 @@ for (const cart of carts) {
 };
 
 
-async function getFilteredItems(req, res) {
+async function getFilteredItems(req, res, next) {
   try {
     const { category, maxPrice, city } = req.query;
 
@@ -282,7 +282,7 @@ async function getFilteredItems(req, res) {
   }
 }
 
-const searchItems = async (req, res) => {
+const searchItems = async (req, res,next) => {
   try {
     const { q } = req.query;
 

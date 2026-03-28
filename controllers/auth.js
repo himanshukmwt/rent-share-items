@@ -7,7 +7,7 @@ const sendOTPEmail = require('../config/email');
 
 const otpStore = {};
 
-async function registerUser(req, res) {
+async function registerUser(req, res, next) {
   try {
     const { name, email, password } = req.body;
 
@@ -43,7 +43,6 @@ async function registerUser(req, res) {
 
    
   } catch (error) {
-    console.log(error);
     next(err);
   }
 };
@@ -101,7 +100,7 @@ async function loginUser(req, res) {
   }
 }
 
-async function getProfile(req, res) {
+async function getProfile(req, res, next) {
   try {
 
     const token = req.cookies.uid;
@@ -127,7 +126,7 @@ async function getProfile(req, res) {
   }
 };
 
-async function updateProfile(req, res){
+async function updateProfile(req, res, next){
   try {
     const { upiId,phoneNumber } = req.body  
 
@@ -138,11 +137,11 @@ async function updateProfile(req, res){
 
     res.json(user);
   } catch (err) {
-    res.status(500).json({ message: "Something went wrong... Please try again later." });
+    next(err);
   }
 }
 
-async function updateLocation(req, res){
+async function updateLocation(req, res, next){
   try {
     const { city, area, latitude, longitude } = req.body;
 
@@ -209,7 +208,7 @@ async function logout(req, res){
 };
 
 // Email se OTP bhejo
-async function forgotPassword(req, res) {
+async function forgotPassword(req, res, next) {
   try {
     const { email } = req.body;
 
@@ -240,7 +239,7 @@ async function forgotPassword(req, res) {
 }
 
 // OTP verify and Password reset
-async function resetPassword(req, res) {
+async function resetPassword(req, res, next) {
   try {
     const { email, otp, newPassword } = req.body;
 

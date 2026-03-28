@@ -1,7 +1,7 @@
 const prisma = require('../config/prisma')
-const { encrypt, decrypt } = require('../config/encryption');
+const { encrypt } = require('../config/encryption');
 
-const submitKYC = async (req, res) => {
+const submitKYC = async (req, res,next) => {
   try {
     const { documentType, documentNumber } = req.body;
      const encryptedNumber = encrypt(documentNumber);
@@ -54,7 +54,7 @@ const submitKYC = async (req, res) => {
   }
 };
 
-const getMyKYC = async (req, res) => {
+const getMyKYC = async (req, res,next) => {
   try {
     const kyc = await prisma.kYC.findUnique({
       where: { userId: req.user.id }

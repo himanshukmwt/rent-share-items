@@ -1,6 +1,6 @@
 const prisma=require("../config/prisma");
 
-async function createReview(req,res){
+async function createReview(req,res,next){
   try {
     const { rentalId, rating, comment } = req.body;
 
@@ -53,7 +53,7 @@ async function createReview(req,res){
   }
 };
 
-async function getItemReviews(req,res){
+async function getItemReviews(req,res,next){
 try {
     const reviews = await prisma.review.findMany({
       where: {
@@ -77,7 +77,7 @@ try {
   }
 };
 
-async function deleteReview(req,res){
+async function deleteReview(req,res,next){
    try {
     const review = await prisma.review.findUnique({
       where: { id: req.params.id }

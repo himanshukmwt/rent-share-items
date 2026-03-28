@@ -1,6 +1,6 @@
 const prisma=require("../config/prisma");
 const depositRules=require("../config/depositRules");
-const checkout = async (req, res) => {
+const checkout = async (req, res,next) => {
   try {
     const { itemId, startDate, endDate } = req.body;
 

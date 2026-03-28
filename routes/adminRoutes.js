@@ -4,6 +4,7 @@ const prisma = require('../config/prisma');
 const { authMiddleware } = require('../middleware/auth');
 const  adminOnly  = require('../middleware/admin');
 const razorpay = require('../config/razorpay');
+const { decrypt } = require('../config/encryption');
 
 // All Users
 router.get('/users', authMiddleware, adminOnly, async (req, res) => {
@@ -50,7 +51,7 @@ router.get('/transactions', authMiddleware, adminOnly, async (req, res) => {
 });
 
 // All KYC
-router.get('/kyc', authMiddleware, adminOnly, async (req, res) => {
+router.get('/kyc', authMiddleware, adminOnly, async (req, res,next) => {
   try {
     const kycs = await prisma.kYC.findMany({
       include: {
@@ -68,7 +69,7 @@ router.get('/kyc', authMiddleware, adminOnly, async (req, res) => {
   }
 });
 
-router.patch('/verify/:id', authMiddleware, adminOnly, async (req, res) => {
+router.patch('/verify/:id', authMiddleware, adminOnly, async (req, res,next) => {
     try {
     if (req.user.role !== "ADMIN") {
       return res.status(403).json({ message: "Admin only" });
@@ -117,7 +118,7 @@ router.patch('/verify/:id', authMiddleware, adminOnly, async (req, res) => {
 });
 
 // Damage Reports
-router.get('/damages', authMiddleware, adminOnly, async (req, res) => {
+router.get('/damages', authMiddleware, adminOnly, async (req, res,next) => {
   try {
     const damages = await prisma.rental.findMany({
       where: { isDamaged: true },
@@ -142,7 +143,7 @@ router.patch('/damages/:id/resolve', authMiddleware, adminOnly, async (req, res)
 });
 
 //delete item
-router.delete('/items/:id',authMiddleware,adminOnly, async (req, res) => {
+router.delete('/items/:id',authMiddleware,adminOnly, async (req, res,next) => {
   try {
     const item = await prisma.item.findUnique({
       where: { id: req.params.id }
@@ -193,7 +194,7 @@ for (const cart of carts) {
 });
 
 
-router.delete('/users/:id',authMiddleware,adminOnly, async (req, res) => {
+router.delete('/users/:id',authMiddleware,adminOnly, async (req, res,next) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.params.id }
@@ -246,7 +247,7 @@ await prisma.user.delete({ where: { id: req.params.id } });
 
 
 // Pending Reviews
-router.get('/pending-reviews', authMiddleware, adminOnly, async (req, res) => {
+router.get('/pending-reviews', authMiddleware, adminOnly, async (req, res,next) => {
   try {
     const rentals = await prisma.rental.findMany({
       where: { status: "PENDING_REVIEW" },
@@ -264,7 +265,7 @@ router.get('/pending-reviews', authMiddleware, adminOnly, async (req, res) => {
 });
 
 // Admin Approve
-router.post('/approve-rental', authMiddleware, adminOnly, async (req, res) => {
+router.post('/approve-rental', authMiddleware, adminOnly, async (req, res, next) => {
   try {
   const { rentalId } = req.body;
  
@@ -281,8 +282,6 @@ const paymentTxn = await prisma.transaction.findFirst({
   }
 });
 
-console.log("Query rentalId:", rentalId);
-console.log("Found:", paymentTxn);
 
 
 
