@@ -49,7 +49,7 @@ async function createReview(req,res){
     res.status(201).json(review);
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
@@ -73,7 +73,7 @@ try {
     res.json(reviews);
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
@@ -98,7 +98,7 @@ async function deleteReview(req,res){
     res.json({ message: "Review deleted" });
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 

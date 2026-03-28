@@ -115,7 +115,7 @@ async function createRental(req,res){
     });
 
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(err);
   }
 };
 
@@ -133,7 +133,7 @@ async function getMyRentals(req,res){
 
         res.json(rentals);
     }catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
@@ -186,7 +186,7 @@ async function getRentalById(req, res) {
     res.json({ ...rental, locationLink });
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
@@ -232,7 +232,7 @@ async function completeRental(req, res){
     res.json(result);
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
@@ -252,7 +252,7 @@ async function getOwnerRentals(req, res) {
     });
     res.json(rentals);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
@@ -281,7 +281,7 @@ async function returnItem(req, res) {
     res.json({ message: "Return request sent to owner" });
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
@@ -330,7 +330,7 @@ async function ownerRequest(req, res) {
     res.json({ message: "Request sent to admin" });
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 }
 

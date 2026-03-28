@@ -44,7 +44,7 @@ async function registerUser(req, res) {
    
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: error.message });
+    next(err);
   }
 };
 
@@ -123,7 +123,7 @@ async function getProfile(req, res) {
 
     return res.status(200).json(user);
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return next(err);
   }
 };
 
@@ -154,7 +154,7 @@ async function updateLocation(req, res){
     res.json({ message: "Location updated " });
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
@@ -235,7 +235,7 @@ async function forgotPassword(req, res) {
     res.json({ message: "OTP sent to email", email });
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 }
 
@@ -272,7 +272,7 @@ async function resetPassword(req, res) {
     res.json({ message: "Password reset successful" });
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 }
 

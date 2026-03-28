@@ -24,8 +24,7 @@ router.post('/reports', authMiddleware, async (req, res) => {
 
     res.status(201).json({ message: 'Report submitted successfully', report });
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 });
 
@@ -41,7 +40,7 @@ router.get('/admin/reports', authMiddleware, adminOnly, async (req, res) => {
     });
     res.json(reports);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 });
 
@@ -53,7 +52,7 @@ router.patch('/admin/reports/:id', authMiddleware, adminOnly, async (req, res) =
     });
     res.json({ message: 'Report resolved' });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 });
 

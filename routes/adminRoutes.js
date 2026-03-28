@@ -58,9 +58,13 @@ router.get('/kyc', authMiddleware, adminOnly, async (req, res) => {
       },
       orderBy: { createdAt: 'desc' }
     });
-    res.json(kycs);
+     const decryptedKycs = kycs.map(kyc => ({
+    ...kyc,
+    documentNumber: decrypt(kyc.documentNumber)  
+  }));
+    res.json(decryptedKycs);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 });
 
@@ -108,7 +112,7 @@ router.patch('/verify/:id', authMiddleware, adminOnly, async (req, res) => {
     res.json(result);
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 });
 
@@ -125,7 +129,7 @@ router.get('/damages', authMiddleware, adminOnly, async (req, res) => {
     });
     res.json(damages);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 });
 
@@ -184,7 +188,7 @@ for (const cart of carts) {
 
   } catch (err) {
     console.log(err);
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 });
 
@@ -236,7 +240,7 @@ await prisma.user.delete({ where: { id: req.params.id } });
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 });
 
@@ -255,7 +259,7 @@ router.get('/pending-reviews', authMiddleware, adminOnly, async (req, res) => {
     });
     res.json(rentals);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 });
 
@@ -366,7 +370,7 @@ console.log("Found:", paymentTxn);
   res.json({ message: "Rental approved" });
 
 } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 });
 

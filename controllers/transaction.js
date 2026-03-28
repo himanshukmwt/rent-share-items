@@ -35,7 +35,7 @@ async function createOrder(req, res) {
       res.status(500).json({ message: razorpayErr.message });
     }
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 }
 
@@ -79,7 +79,7 @@ async function verifyPayment(req, res) {
     res.json({ message: "Payment successful" });
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 }
 

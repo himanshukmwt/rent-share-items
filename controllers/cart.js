@@ -42,7 +42,7 @@ const addToCart = async (req, res) => {
     res.json({ message: "Item added to cart" });
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 }
 
@@ -71,7 +71,7 @@ const removeFromCart = async (req, res) => {
     res.json({ message: "Item removed from cart" });
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 }
 
@@ -101,7 +101,7 @@ const getMyCart = async (req, res) => {
     res.json(cart);
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 }
 
@@ -129,7 +129,7 @@ const clearCart = async (req, res) => {
     res.json({ message: "Cart cleared" });
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 

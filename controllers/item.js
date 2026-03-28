@@ -70,7 +70,7 @@ async function createItem(req,res){
     
     res.status(201).json(item);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(err);
   }
 };
 
@@ -111,7 +111,7 @@ async function getAllItems(req,res){
     // return res.status(200).json(items);
       }catch (error) {
         console.log(error);
-     return res.status(500).json({ message: error.message });
+     return next(err);
   };
 };
 
@@ -149,7 +149,7 @@ async function  getItemById(req,res){
     res.status(200).json(item);
   } catch (error) {
     console.log("Error:", error.message)
-    res.status(500).json({ message: error.message });
+    next(err);
   }
 };
 
@@ -166,7 +166,7 @@ async function getMyItems(req, res) {
 
     res.json(items);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(err);
   }
 }
 
@@ -248,7 +248,7 @@ for (const cart of carts) {
     });
     res.status(200).json({ message: "Item deleted successfully" });
   }catch (error) {
-    res.status(500).json({ message: error.message });
+    next(err);
   }
 };
 
@@ -278,7 +278,7 @@ async function getFilteredItems(req, res) {
 
     res.json(items);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 }
 
@@ -308,7 +308,7 @@ const searchItems = async (req, res) => {
     res.json(items);
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
