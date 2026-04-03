@@ -11,7 +11,8 @@ const {
   completeRental,
   getOwnerRentals,
   ownerRequest,
-  returnItem
+  returnItem,
+  verifyPickupOTP
 } = require("../controllers/rental");
 
 router.post("/direct", authMiddleware,validate(createRentalSchema), createRental);
@@ -21,6 +22,7 @@ router.get("/:id", authMiddleware, getRentalById);
 router.patch("/complete",authMiddleware,completeRental);
 router.patch("/return", authMiddleware, returnItem);
 router.post("/owner-request", authMiddleware,upload.array('damagePhotos', 3),ownerRequest);
+router.post("/verify-pickup", authMiddleware, verifyPickupOTP);
 
 
 module.exports = router;

@@ -26,7 +26,7 @@ async function createItem(req,res,next){
     const user = await prisma.user.findUnique({
       where: { id: req.user.id }
     });
-    if (!user.kycVerified || !user.upiId || !user.city || !user.area || !user.phoneNumber) { 
+    if (!user.kycVerified || !user.upiId || !user.city || !user.area ) { 
       return res.status(403).json({ message: "Complete your profile first" });
     }
   
@@ -110,7 +110,6 @@ async function getAllItems(req,res,next){
 
     // return res.status(200).json(items);
       }catch (error) {
-        console.log(error);
      return next(err);
   };
 };
@@ -148,7 +147,6 @@ async function  getItemById(req,res,next){
 
     res.status(200).json(item);
   } catch (error) {
-    console.log("Error:", error.message)
     next(err);
   }
 };

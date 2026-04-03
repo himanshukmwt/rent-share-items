@@ -85,7 +85,7 @@ async function createRental(req,res,next){
     const depositAmount = item.pricePerDay * multiplier;
 
     // Platform fee - 5% of rental amount
-    const platformFee   = Math.round(rentalAmount * 0.05);
+    const platformFee = Math.min(Math.round(rentalAmount * 0.05), 20);
     const totalAmount=rentalAmount+depositAmount+platformFee;
    
     const result = await prisma.$transaction(async (tx) => {
@@ -332,8 +332,40 @@ async function ownerRequest(req, res, next) {
   } catch (err) {
     next(err);
   }
-}
+};
 
+
+
+
+// verifyPickupOTP - Owner verify karega
+async function verifyPickupOTP(req, res) {
+  const { rentalId, otp } = req.body;
+
+  const rental = await prisma.rental.findUnique({
+    where: { id: rentalId },
+    include: { item: true }
+  });
+
+  // Sirf OWNER verify kar sakta hai
+  if (rental.item.ownerId !== req.user.id) {
+    return res.status(403).json({ message: "Unauthorized" });
+  }
+
+  if (rental.pickupOTP !== otp) {
+    return res.status(400).json({ message: "Invalid OTP" });
+  }
+
+  await prisma.rental.update({
+    where: { id: rentalId },
+    data: {
+      isPickedUp: true,
+      pickedUpAt: new Date(),
+      pickupOTP:  null
+    }
+  });
+
+  res.json({ message: "Pickup confirmed" });
+}
 
 module.exports={
     createRental,
@@ -342,6 +374,7 @@ module.exports={
     completeRental,
     getOwnerRentals,
     ownerRequest,
-    returnItem
+    returnItem,
+    verifyPickupOTP
 }
 

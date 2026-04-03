@@ -39,6 +39,16 @@ async function createOrder(req, res, next) {
   }
 }
 
+// OTP Generate - Payment ke baad auto
+async function generatePickupOTP(rentalId) {
+  const otp = Math.floor(1000 + Math.random() * 9000).toString(); // 4 digit
+  await prisma.rental.update({
+    where: { id: rentalId },
+    data:  { pickupOTP: otp }
+  });
+  return otp;
+};
+
 //  Payment Verify
 async function verifyPayment(req, res, next) {
   try {
@@ -75,6 +85,8 @@ async function verifyPayment(req, res, next) {
         data:  { status: "ACTIVE" }
       });
     });
+    //otp generate
+    await generatePickupOTP(rentalId);
 
     res.json({ message: "Payment successful" });
 

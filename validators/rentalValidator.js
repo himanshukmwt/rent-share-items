@@ -8,7 +8,7 @@ exports.createRentalSchema = Joi.object({
     }),
 
   startDate: Joi.date()
-    .min('now')  
+    .min(new Date().setHours(0, 0, 0, 0))  
     .required()
     .messages({
       'date.min':     'Start date cannot be in the past',

@@ -71,7 +71,6 @@ router.get('/kyc', authMiddleware, adminOnly, async (req, res,next) => {
 }));
     res.json(decryptedKycs);
   } catch (err) {
-    console.log(err);
     next(err);
   }
 });
@@ -195,7 +194,6 @@ for (const cart of carts) {
     res.json({ message: "Item deleted successfully" });
 
   } catch (err) {
-    console.log(err);
     next(err);
   }
 });
@@ -247,7 +245,6 @@ await prisma.user.delete({ where: { id: req.params.id } });
     res.json({ message: "User deleted successfully" });
 
   } catch (err) {
-    console.error(err);
     next(err);
   }
 });
@@ -297,12 +294,6 @@ const paymentTxn = await prisma.transaction.findFirst({
   }
 
 
-  console.log("Rental status:", rental.status);
-  console.log("isDamaged:", rental.isDamaged);
-  console.log("PaymentTxn:", paymentTxn);
-  console.log("RazorpayId:", paymentTxn?.razorpayId);
-  console.log("DepositAmount:", rental.depositAmount);
-
   await prisma.$transaction(async (tx) => {
     await tx.rental.update({
       where: { id: rentalId },
@@ -321,33 +312,33 @@ const paymentTxn = await prisma.transaction.findFirst({
     if (paymentTxn?.razorpayId) {
       let refundAmount = 0;
 
-      if (!rental.isDamaged) {
-        refundAmount = rental.depositAmount;          // Full refund
-      } else if (rental.damageAmount > 0) {
-        refundAmount = rental.depositAmount - rental.damageAmount; // Partial
-      } else {
-        refundAmount = 0;                             // No refund
-      }
+      // if (!rental.isDamaged) {
+      //   refundAmount = rental.depositAmount;          // Full refund
+      // } else if (rental.damageAmount > 0) {
+      //   refundAmount = rental.depositAmount - rental.damageAmount; // Partial
+      // } else {
+      //   refundAmount = 0;                             // No refund
+      // }
       // adminApprove mein refund calculate karte waq
 
-// if (!rental.isDamaged) {
+if (!rental.isDamaged) {
 
-//   const extraCharge = rental.extraCharge || 0;
-//   refundAmount = rental.depositAmount - extraCharge;
+  const extraCharge = rental.extraCharge || 0;
+  refundAmount = rental.depositAmount - extraCharge;
   
-//   // Refund negative nahi hona chahiye
-//   if (refundAmount < 0) refundAmount = 0;
+  // Refund negative nahi hona chahiye
+  if (refundAmount < 0) refundAmount = 0;
 
-// } else if (rental.damageAmount > 0) {
-//   // Minor damage + extra charge dono kato
-//   const extraCharge = rental.extraCharge || 0;
-//   refundAmount = rental.depositAmount - rental.damageAmount - extraCharge;
-//   if (refundAmount < 0) refundAmount = 0;
+} else if (rental.damageAmount > 0) {
+  // Minor damage + extra charge dono kato
+  const extraCharge = rental.extraCharge || 0;
+  refundAmount = rental.depositAmount - rental.damageAmount - extraCharge;
+  if (refundAmount < 0) refundAmount = 0;
 
-// } else {
-//   // Major damage - No refund
-//   refundAmount = 0;
-// }
+} else {
+  // Major damage - No refund
+  refundAmount = 0;
+}
 
       if (refundAmount > 0) {
         const refund = await razorpay.payments.refund(

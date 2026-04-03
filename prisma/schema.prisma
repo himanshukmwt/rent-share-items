@@ -118,6 +118,9 @@ model Rental {
   damageResolved Boolean @default(false)
      extraDays      Int?    
   extraCharge    Float?  
+  pickupOTP  String?
+  isPickedUp Boolean  @default(false)
+  pickedUpAt DateTime?
 
   transaction   Transaction[]
   review        Review?
