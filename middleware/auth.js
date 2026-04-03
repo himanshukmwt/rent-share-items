@@ -9,7 +9,7 @@ async function authMiddleware(req, res, next) {
 
   // 2. Cookie se (web)
   if (!token && req.cookies?.uid) {
-    token = req.cookies.uid;
+    token = req.cookies.uid; 
   }
 
   if (!token) {

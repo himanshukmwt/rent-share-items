@@ -90,6 +90,7 @@ async function loginUser(req, res) {
 
     // 5. Send response
     return res.status(200).json({
+      token,
       user: { id: user.id, name: user.name, email: user.email }
     });
   } catch (error) {
@@ -193,6 +194,7 @@ const verifyOTP = async (req, res) => {
 
    return res.status(201).json({
       message: "User registered successfully",
+      token,
       user: { id: user.id, name: user.name, email: user.email }
     });
   
