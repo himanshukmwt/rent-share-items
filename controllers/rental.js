@@ -337,34 +337,54 @@ async function ownerRequest(req, res, next) {
 
 
 
-// verifyPickupOTP - Owner verify karega
-async function verifyPickupOTP(req, res) {
-  const { rentalId, otp } = req.body;
+async function verifyPickupOTP(req, res, next) {  
+  try {                                            
+    const { rentalId, otp } = req.body;
 
-  const rental = await prisma.rental.findUnique({
-    where: { id: rentalId },
-    include: { item: true }
-  });
-
-  // Sirf OWNER verify kar sakta hai
-  if (rental.item.ownerId !== req.user.id) {
-    return res.status(403).json({ message: "Unauthorized" });
-  }
-
-  if (rental.pickupOTP !== otp) {
-    return res.status(400).json({ message: "Invalid OTP" });
-  }
-
-  await prisma.rental.update({
-    where: { id: rentalId },
-    data: {
-      isPickedUp: true,
-      pickedUpAt: new Date(),
-      pickupOTP:  null
+    if (!rentalId || !otp) {
+      return res.status(400).json({ message: "RentalId and OTP required" });
     }
-  });
 
-  res.json({ message: "Pickup confirmed" });
+
+    const rental = await prisma.rental.findUnique({
+      where:   { id: rentalId },
+      include: { item: true }
+    });
+
+    if (!rental) {
+      return res.status(404).json({ message: "Rental not found" });
+    }
+
+    if (rental.item.ownerId !== req.user.id) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    if (rental.status !== "ACTIVE") {
+      return res.status(400).json({ message: "Rental is not active" });
+    }
+
+    if (rental.isPickedUp) {
+      return res.status(400).json({ message: "Item already picked up" });
+    }
+
+    if (rental.pickupOTP?.toString() !== otp.toString()) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    await prisma.rental.update({
+      where: { id: rentalId },
+      data: {
+        isPickedUp: true,
+        pickedUpAt: new Date(),
+        pickupOTP:  null
+      }
+    });
+
+    res.json({ message: "Pickup confirmed" });
+
+  } catch (err) {
+    next(err);  
+  }
 }
 
 module.exports={

@@ -37,10 +37,9 @@ app.use(express.urlencoded({extended :false}));
 app.use(helmet());
 app.set('trust proxy', 1);
 app.use(cors({
-  origin: "http://localhost:5173", // replace with frontend domain
-  // origin: "*",
+  // origin: "http://localhost:5173", // replace with frontend domain
+   origin: "rent-share-frontend.vercel.app",
   methods: ["GET","POST","PUT","DELETE","PATCH"],
-  // origin: "http://10.10.11.175:5173",
   credentials: true
 }));
 const limiter = rateLimit({

@@ -41,7 +41,7 @@ async function createOrder(req, res, next) {
 
 // OTP Generate - Payment ke baad auto
 async function generatePickupOTP(rentalId) {
-  const otp = Math.floor(1000 + Math.random() * 9000).toString(); // 4 digit
+  const otp = Math.floor(1000 + Math.random() * 9000).toString(); 
   await prisma.rental.update({
     where: { id: rentalId },
     data:  { pickupOTP: otp }
