@@ -184,10 +184,10 @@ const verifyOTP = async (req, res) => {
   const token=setUser(user);
      res.cookie("uid",token,{
        httpOnly: true,
-       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      // sameSite:"lax",
-      // secure:false,
-       secure: process.env.NODE_ENV === 'production',
+      //  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      //  secure: process.env.NODE_ENV === 'production',
+      sameSite: 'none',
+      secure: true,
        maxAge: 72 * 60 * 60 * 1000
      }); 
 
