@@ -83,8 +83,8 @@ async function loginUser(req, res) {
      const token=setUser(user);
      res.cookie("uid",token,{
        httpOnly: true,
-       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-       secure: process.env.NODE_ENV === 'production',
+       sameSite: 'none',
+       secure: true,
        maxAge: 72 * 60 * 60 * 1000
      }); 
 
