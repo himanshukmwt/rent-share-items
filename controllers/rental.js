@@ -85,7 +85,7 @@ async function createRental(req,res,next){
     const depositAmount = item.pricePerDay * multiplier;
 
     // Platform fee - 5% of rental amount
-    const platformFee = Math.min(Math.round(rentalAmount * 0.05), 20);
+    const platformFee = Math.round((rentalAmount+depositAmount) * 0.03);
     const totalAmount=rentalAmount+depositAmount+platformFee;
    
     const result = await prisma.$transaction(async (tx) => {
