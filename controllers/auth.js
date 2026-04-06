@@ -104,11 +104,11 @@ async function loginUser(req, res) {
 async function getProfile(req, res, next) {
   try {
 
-    const token = req.cookies.uid;
+    // const token = req.cookies.uid;
 
-    if (!token) {
-        return res.status(401).json({ message: "Unauthorized" });
-    }
+    // if (!token) {
+    //     return res.status(401).json({ message: "Unauthorized" });
+    // }
 
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
