@@ -75,44 +75,43 @@ async function createItem(req,res,next){
 };
 
 // Get All Items
-async function getAllItems(req,res,next){
-    try{
-      const items = await prisma.item.findMany({
-        where: {
-          ownerId: { not: req.user.id }  
-        },
+// async function getAllItems(req,res,next){
+//     try{
+//       const items = await prisma.item.findMany({
+//         where: {
+//           ownerId: { not: req.user.id }  
+//         },
+//       include: {
+//         owner: true
+//       } 
+//     });
+//       return res.status(200).json(items);
+//       }catch (error) {
+//         console.log(error);
+//      return next(err);
+//   };
+// };
+
+async function getAllItems(req, res, next) {
+  try {
+    const userId = req.user?.id; 
+
+    const items = await prisma.item.findMany({
+      where: userId
+        ? { ownerId: { not: userId } } 
+        : {},                           
       include: {
         owner: true
-      } 
+      }
     });
-      return res.status(200).json(items);
-    // const { startDate, endDate } = req.query;
-    // const items = await prisma.item.findMany({
-    //   where: {
-    //     ownerId: { not: req.user.id },
-    //     availability: true,
-    //     ...(startDate && endDate ? {
-    //       rentals: {
-    //         none: {
-    //           AND: [
-    //             { startDate: { lte: new Date(endDate) } },
-    //             { endDate: { gte: new Date(startDate) } },
-    //             { status: { notIn: ['CANCELLED', 'REJECTED'] } }
-    //           ]
-    //         }
-    //       }
-    //     } : {})
-    //   },
-    //   include: {
-    //     owner: true
-    //   }
-    // });
 
-    // return res.status(200).json(items);
-      }catch (error) {
-     return next(err);
-  };
-};
+    return res.status(200).json(items);
+
+  } catch (error) {
+    console.log(error);
+    return next(error); 
+  }
+}
 
 // Get single item
 async function  getItemById(req,res,next){

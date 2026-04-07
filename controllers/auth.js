@@ -203,7 +203,7 @@ const verifyOTP = async (req, res) => {
 async function logout(req, res){
   res.clearCookie('uid', {
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: 'none',
     secure: process.env.NODE_ENV === 'production'
   });
   res.json({ message: 'Logged out successfully' });
