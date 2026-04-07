@@ -18,7 +18,7 @@ router.post("/", authMiddleware,upload.array('images', 4),validate(createItemSch
 router.get("/filter", getFilteredItems);
 router.get("/search", searchItems);
 router.get("/my", authMiddleware, getMyItems)
-router.get("/", authMiddleware,getAllItems);
+router.get("/", getAllItems);
 router.get("/:id",authMiddleware, getItemById);
 router.delete("/:id", authMiddleware, deleteItem);;
 
