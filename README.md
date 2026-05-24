@@ -49,7 +49,7 @@ Most people own expensive items that sit idle 90% of the time:
 |---|---|---|
 | Earn extra income from idle items | Use expensive items without buying | Reduces unnecessary production |
 | Full control over pricing & dates | Pay only for the time you need | Promotes a sharing economy |
-| Damage protection via deposit system | Access a wide variety of categories | Better for the environment 🌍 |
+| Damage protection via deposit system | Access a wide variety of categories | Better for the environment  |
 
 ---
 
