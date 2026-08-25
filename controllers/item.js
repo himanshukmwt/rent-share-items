@@ -29,6 +29,11 @@ async function createItem(req,res,next){
     if (!user.kycVerified || !user.upiId || !user.city || !user.area ) { 
       return res.status(403).json({ message: "Complete your profile first" });
     }
+     if (!pricePerDay || pricePerDay <= 0) {
+            return res.status(400).json({
+          message: "Valid pricePerDay required"
+        });
+      }
   
       const multiplier    = depositRules[category?.toLowerCase()] ||depositRules.default;
       const depositAmount = Number(pricePerDay) * multiplier;
@@ -36,19 +41,15 @@ async function createItem(req,res,next){
       // Deposit 20000 se zyada nahi honi chahiye
       if (depositAmount > 20000) {
         return res.status(400).json({ 
-          message: `Deposit amount ${depositAmount} hai jo 20,000 se zyada hai. Price kam karo.` 
+          message: `Deposit amount ${depositAmount} is grater then 20000. Price should be minimum.` 
         });
       }
 
-      if (!pricePerDay || pricePerDay <= 0) {
-            return res.status(400).json({
-          message: "Valid pricePerDay required"
-        });
-      }
+     
       const images = req.files?.map(file => file.path) || []
 
       if (images.length === 0) {
-        return res.status(400).json({ message: "Kam se kam 1 image required hai" });
+        return res.status(400).json({ message: "Minimum 1 image required" });
       }
 
       if (images.length > 4) {
